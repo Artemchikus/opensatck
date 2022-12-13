@@ -1,0 +1,2907 @@
+---
+subtitle: 1. Подготовительная работа для создания ВМ.
+title: Мой дневник по практике
+---
+
+1.1 Проверка поддержки виртуализации, если выртуализация есть, то должен
+быть такой вывод.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image1.png){width="2.3006944444444444in"
+height="0.7847222222222222in"}
+
+1.2. Устнаовка необходимых пакетов:
+[**bridge-utils**](https://linuxhint.com/bridge-utils-ubuntu/) (создание
+моста),
+[**libvirt-daemon-system**](https://packages.debian.org/unstable/libvirt-daemon-system)
+(создание ВМ), [**quemu и
+quemu-kvm**](https://redos.red-soft.ru/base/arm/os-virtual/qemu-kvm/qemu-kvm/)
+(работа гипервизора).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image2.png){width="5.1305555555555555in"
+height="0.6916666666666667in"}
+
+1.3. Активация libvirtd.service для дальнейшей работы.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image3.png){width="6.6930555555555555in"
+height="1.06875in"}
+
+1.4. Во всяких [**гайдах**](https://ubuntu-admin.ru/ubuntu-kvm/)
+говорится, что есть три способа настройки доступа виртуальных машин в
+сеть: чрез одну из ВМ (самый труднонастраеваемый и еще доп ВМ нужна),
+через NAT (уже реализован по дефлоту virbr0), через Bridge (самый
+обычный и удобный, его и реализуем, не зря ведь bridge-utils качали).
+
+Для этого создаем сетевой интерфейс br0 типа bridge.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image4.png){width="6.6930555555555555in"
+height="1.0819444444444444in"}Потом все удаляем так как
+[**оказывается**](https://unix.stackexchange.com/questions/554331/theoretical-tap-interface-w-wifi-parent-interface),
+что нельзя проводить мост к wifi сети, только к etherner, потому что
+Wi-Fi требует дополнительных MAC-адресов для связи, из-за чего принято
+решение пользоваться NAT :-)
+
+1.5. Установка софта для обновления времени сервера
+[**chrony**](https://chrony.tuxfamily.org/), для синхронизации времени
+вритуалок.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image5.png){width="3.884027777777778in"
+height="0.8944444444444445in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image6.png){width="5.572222222222222in"
+height="0.93125in"}
+
+2\. Установка обзаза Centos и создание 3 ВМ с помощью KVM.
+
+2.1. Создание диска с пмощью
+[**qemu-img**](https://docs.altlinux.org/ru-RU/alt-server-v/9.2/html/alt-server-v/ch46s03.html) формата
+[**qcow2**](https://ru.wikipedia.org/wiki/Qcow2) для монтирования в ВМ
+(**preallocation=metadata** -- выделяет пространство, необходимое для
+метаданных, но не выделяет место для данных. Это самый быстрый способ
+предоставления, но самый медленный для гостевой записи). Папки создал
+сам, кроме mnt.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image7.png){width="6.6930555555555555in"
+height="0.5881944444444445in"}
+
+2.2. Установка утилит
+**[virt-install](https://docs.altlinux.org/ru-RU/alt-server-v/9.2/html/alt-server-v/ch46s02.html)**
+(создание ВМ) и
+**[osinfo-query](https://man.archlinux.org/man/community/libosinfo/osinfo-query.1.en)**
+(получение информации о поддержке гипервизорами различных операционных
+систем) для для создания гостевых машин в среде kvm из командной строки.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image8.png){width="4.4840277777777775in"
+height="0.6354166666666666in"}
+
+2.3. Просмотр доступных для KVM образов Centos с помощью команды
+osinfo-query os.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image9.png){width="6.6930555555555555in"
+height="4.574305555555555in"}
+
+2.4. Установка дистрибутива операционной системы с сайта
+<http://mirror.yandex.ru/centos/7.9.2009/isos/x86_64/> В моем случае
+загружается образ CentOS-7-x86_64-Minimal-2009.iso. Оказалось, что
+Centos крутая штука, так как ворует все идеи у комерческой Red Hat
+Enterprise Linux, но при этом абсолютно бесплатная.
+
+2.5. Cоздание ВМ с Centos7.0 с помщью virt-intsall
+([**сайт**](https://libvirt.org/formatdomain.html#elementsOS) с
+документацией параметров).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image10.png){width="6.6930555555555555in"
+height="0.7055555555555556in"}
+
+-   **\--virt-type kvm** --- тип гипервизора
+
+-   **\--name VM1** --- имя вритуалки
+
+-   **\--ram 4096** --- опреативка
+
+-   \-**-arch=x86_64** - имитируемая архитектура процессора
+
+-   \-**-disk /mnt/kvm/disk/vm1.qcow2,size=6,format=qcow2** ---
+    простарнство хранения данных, **size** --- размер, **format** ---
+    формат тома.
+
+-   **\--network network=default** --- сетевой интерфейс
+    (**default=virbr0**)
+
+-   \-**-os-type=linux** --- тип операциооной системы
+
+-   **\--os-variant=centos7.0** --- конкретный вариант ОС
+
+-   **\--location=/mnt/kvm/iso/CentOS-7-x86_64-Minimal-2009.iso** ---
+    путь до установочного образа.
+
+-   **\--graphics none** - настройки экрана ВМ (**none** --- без
+    графического интерфейса)
+
+-   **\--console pty,target_type=serial** --- тип подкюченя к гостевой
+    консоли (**pty** - обеспечивают работу терминала в оконном
+    интерфейсе, **target_type=serial** --- дефолтная консоль, не
+    открывается новое окно)
+
+-   **\--extra-args \'console=ttyS0,115200n8 serial\'** ---
+    дополнительные аргументы, в моем случае парметры консоли в которую
+    будет выводится информация иначе не видать меню загрузки.
+
+2.6. Настройка с помощью меню устновки Centos без графического
+интерфейса (в первый раз не понял,что за фигня и как этим пользоваться,
+оказывается циферками). Все загрузится ноомально если на месте
+восклицательных знаков будут крестики.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image11.png){width="4.752083333333333in"
+height="2.9993055555555554in"}
+
+Настройка сети такая (почему-то скрин поплыл, но там DNS и Gatway
+одинаковые --- 192.168.122.1):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image12.png){width="4.832638888888889in"
+height="1.4590277777777778in"}
+
+Заполненное меню загрузки такое, пользователя не создаем:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image13.png){width="4.4743055555555555in"
+height="1.9201388888888888in"}
+
+Готовая ВМ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image14.png){width="5.288888888888889in"
+height="1.9972222222222222in"}
+
+2.7. Полезные команды для работы с ВМ:
+
+-   **virsh list \--all** --- просмотр всех ВМ
+
+-   **virsh start vm** --- запустить неактивную ВМ
+
+-   **virsh shutdown vm** --- выключить ВМ через гостевую ОС
+
+-   **virsh destroy vm** --- выключить ВМ принудительно (выдернуть из
+    разетки)
+
+-   **virsh domblklist vm** --- информация о дисках ВМ
+
+-   **virsh dominfo vm** --- информация о ВМ
+
+-   **virsh nodeinfo** --- инфоомация о хостовой машине
+
+-   **virsh undefine \--domain vm** --- удалить всю информацию о ВМ,
+    например чтобы переиспользовать диск который ей был занят (я то 3
+    раза ее пересоздавал)
+
+-   **virsh console vm** --- подключение к консоли ВМ
+
+-   **virsh dumpxml vm** --- информация о настройках вм
+
+-   **virsh snapshot-list \--domain vm** --- просмотр снапшотов ВМ
+
+-   **virsh snapshot-create-as vm vm-snapshot** --- создание сапшота ВМ
+
+-   **virsh snapshot-info \--domain vm \--snapshotname vm-snapshot** ---
+    информация о спашоте ВМ
+
+-   **virsh snapshot-create-as \--domain vm \--name vm-snapshot** ---
+    создание снапшота ВМ
+
+    -   **\--disk-only** --- создане снапшота только диска (без
+        состояния оперативки)
+
+-   **virsh snapshot-revert \--domain vm \--snapshotname vm-snapshot**
+    --- откатить ВМ к снапшот
+
+    -   **\--running ---** запустить ВМ
+
+-   **virsh snapshot-delete \--domain vm \--snapshotname vm-snapshot**
+    --- удалить снапшот ВМ
+
+-   **virsh net-create path_to_net_conf** --- создать сеть для ВМ
+
+-   **virsh net-list** --- список сетей
+
+-   **virsh net-autostart net** --- настройка автостарта сети
+
+-   **virsh attach-interface vm \--type bridge \--source interface
+    \--model virtio \--config \--live \--persistent** --- присоеденение
+    сетевого интерфеса к ВМ
+
+    -   **\--source ---** имя сетевого интерфеса на хосте
+
+    -   **\--model ---** тип интерфейса
+
+    -   **\--config ---** через файл конфига
+
+    -   **\--live ---** ВМ не выключать
+
+    -   **\--persitent ---** подключить навсегда
+
+-   **virsh detach-interface vm3 \--mac \'52:54:00:3b:6e:3f\' \--type
+    bridge \--persistent** --- отсоедние сетевого интефейса от ВМ
+
+-   **virsh net-info net** --- информация о сети
+
+-   **qemu-img info disk1.qcow2** --- информация об образе диска
+
+-   **qemu-img resize /mnt/kvm/disk/vmserver01-disk1.qcow2 +1G** ---
+    увеличение размера диска
+
+-   **qemu-img info /mnt/kvm/disk/vmserver01-disk1.qcow2** ---
+    информация о диске
+
+-   **Ctrl + \]** - выход из гостевой консоли
+
+-   **virt-install \--parameter=?** - информация о параметре (лучше
+    сайтом пользоваться с команды пользы 0)
+
+-   **nmcli connection show** --- показывает все сетевые интерфейсы
+    кроме loopback
+
+-   **nmcli connection delete interface** --- удаляет сетевой интерфейс
+    (если вы выяснили, что мост в wifi не прокидывается)
+
+-   **sudo mv src dst** --- перенести файл, если у вас почемуто нет прав
+    на доступа к папке mnt через графический интерфейс Ubuntu
+
+Отстальные 2 ВМ поднимаются по аналогичной схеме только с другими ip
+адресами, требованиями к оперативе и размеру диска.
+
+3\. Установка и настройка RabbitMQ на Control узел.
+
+3.1. Зачем он вообще нужен? Оказывается RabbitMQ или какой-нибудь другой
+брокер сообщений (Apache Qpid или ZeroMQ) используется для
+координирования операций и обмена информацией между сервисами OpenStack,
+такими как Glance, Cinder, Nova, OpenStack Networking, Heat и Ceilometer
+по протоколу AMQP (Advanced Message Queuing Protocol).
+
+3.2. [**Установка
+RabbitMQ**](https://gist.github.com/fernandoaleman/fe34e83781f222dfd8533b36a52dddcc)
+на ВМ с помощью yum (-y --- автоответ yes, если не знали).
+
+[Сноска от автора (дочитайте до конца!)]{.ul}, пока я пытался установить
+RabiitMQ по гайдам, я умер внутри, но после долгих поисков мне все таки
+удалось найти [**нормальное
+руководство**](https://computingforgeeks.com/installing-rabbitmq-on-centos-6-centos-7/),
+при помощи которого RabbitMQ все таки удалось установить. Но я же
+проделал такю большую работу качая RabbitMQ по другим гайдам, так что
+было принято решение сохранить мои первые попытки в описание процесса
+установки, нормальный порядок установки находится во
+[**тут**](#вторая_часть). **ВНИМАНИЕ!!!!!** Я публично извиняюсь перед
+Андреем Маркеловым (автор книги) за [**эти слова**](#sorry), и снимаю
+перед ним шляпу, так как его способ установки онсновых утилит для
+разворачиваняи опенстека является самым удобным в интренете, достаточно
+ввести 3 следующие команды после запуска ВМ и все остальные пакеты
+(сервисы Openstack и RabbitMQ) будут загружаться через обычный yum
+(таким образом настройка RabbitMQ начинается [**здесь**](#rabbit)):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image15.png){width="6.6930555555555555in"
+height="0.9743055555555555in"}
+
+3.3. Установка []{#epel-releace .anchor}epel-release (открытое
+бесплатное хранилище пакетов от Fedora, видимо нужно для RabbitMQ) и
+обновление компонентов системы.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image16.png){width="3.384027777777778in"
+height="0.875in"}
+
+3.4. Установка []{#erlang .anchor}Erlang - язык, на котром написан
+RabbitMQ. Для этого надо установить
+[**wget**](https://habr.com/ru/company/ruvds/blog/346640/), так как он
+не предустановлен, после чего загрузить rpm репозиторий с помощью wget,
+потом добавть его с помощью
+[**rpm**](https://www.inp.nsk.su/~bolkhov/teach/inpunix/setup_rpm.ru.html)
+-Uvh (U - апгрейд пакета, vh - для статус бара и дополнительной
+информации), и в конце установить необходимые пакеты
+([**erlang**](https://habr.com/ru/post/50028/),
+[**socat**](https://linux-notes.org/ustanovka-socat-v-unix-linux/),
+[**logrotate**](https://1cloud.ru/help/linux/upravlenie-logami-s-pomoshch'yu-logrotate-na-ubuntu-16-04))
+с помощью yum, на сколько я понял без них RabbitMQ не заработает, как
+минимум без eralng.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image17.png){width="6.2555555555555555in"
+height="1.0409722222222222in"}
+
+3.5. Устновка rabbitmq-server. Для этого устанавливаем rpm пакет с
+RabbitMQ с помощью wget, потом добавляем ключ подписи с помощью rpm (без
+него вылезет ошибка), после чего устанавливаем
+[**rabbitmq-server**](https://habr.com/ru/post/149694/) с помощью rpm,
+запускаем его и настариваем автозапуск.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image18.png){width="6.6930555555555555in"
+height="1.0451388888888888in"}Понимаем, что rabbitmq-server не
+запускается, а точнее находится в состоянии activating пока не словит
+timeout, и решаем эту проблему путем настройки firewall-cmd и
+[**SELinux**](https://habr.com/ru/company/kingservers/blog/209644/).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image19.png){width="2.6215277777777777in"
+height="0.9777777777777777in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image20.png){width="2.6305555555555555in"
+height="0.9479166666666666in"}
+
+Для этого освобождаем следующие
+[**порты**](https://www.rabbitmq.com/networking.html) (гле-то говорится,
+что достаточно сделать публичным только базовый порт RabbitMQ, но на
+всякий и другие тоже опубликуем, хотя наверное можно просто вырубить
+фаерволл):
+
+-   **4369** --- порт сервиса empd (Erlang Port Mapper Daemon), служба
+    обнаружения одноранговых узлов, используемая узлами RabbitMQ и
+    инструментами CLI.
+
+-   **25672** --- gорт сервера распространения Erlang, используется для
+    связи между узлами и инструментами CLI.
+
+-   **5671** --- порт сервиса
+    [**ampq**](https://habr.com/ru/post/62502/) (Аdvanced Message
+    Queuing Protocol), тот самый протокол обмена сообщениями, который
+    использует RabbitMQ.
+
+-   **5672** --- порт сервиса ampqs (amqp protocol over TLS/SSL), из
+    расшифровки и так понятно (как говорится на офицальном сайте,
+    RabbitMQ не работает если на машине нет OpenSSL 1.1, конфликты с
+    Erlang 24 версии, но может быть все работает, я не проверял)
+
+-   **15672** --- порт клиентов [**HTTP
+    API**](https://www.rabbitmq.com/management.html),
+    [**пользовательского интерфейса
+    управления**](https://www.rabbitmq.com/management.html) и
+    [**rabbitmqadmin**](https://www.rabbitmq.com/management-cli.html)
+    без TLS/SSL, почему-то с TLS/SSL не публикуется.
+
+-   **61613** --- порт сервиса
+    [**stomp**](http://onreader.mdl.ru/RabbitMQInDepth/content/Ch09.html)
+    (Simple Text Oriented Messaging Protocol), альтернатива AMPQ для
+    спецефичных случаев.
+
+-   **61614** - порт сервиса stomps (stomp protocol over TLS/SSL),
+    аналогично ampq и ampqs.
+
+-   **1883** --- порт сервиса
+    [**mqtt**](http://onreader.mdl.ru/RabbitMQInDepth/content/Ch09.html)
+    (Message Queue Telemetry Transport) альтернатива AMPQ для
+    спецефичных случаев.
+
+-   **8883** --- порт сервиса mqtts (mqtt protocol over TLS/SSL),
+    аналогично ampq и ampqs.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image21.png){width="5.863888888888889in"
+height="1.6083333333333334in"}
+
+-   **\--zone=public** --- публичный доступ к порту
+
+-   **\--permanent** --- останется после перезагрузки машины
+
+Перезагрузка фаерволла, порты добавились:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image22.png){width="4.103472222222222in"
+height="2.2743055555555554in"}
+
+Включаем nis (Network Information Service - распространяет карты имён,
+паролей и другую важную информацию компьютерам своего домена) в SELinux.
+Совершенно без понятия зачем, видимо как-то связано с работой Erlang,
+если это не сделать, то порт для RabbitMQ не выделится.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image23.png){width="5.205555555555556in"
+height="0.7958333333333333in"}
+
+После чего пробуем различные фиксы из интернета (около 6), обращаемся к
+гадалке, от отчаяния пробуем оригинальный гайд по установке с
+офицального сайта, и в конце концов понимаем, что ничего не работает.
+RabbitMQ убивает людей...
+
+3.3. Итак вот []{#вторая_часть .anchor}оно --- описание установки при
+помощи другого руководства. Первым делом меняем hostname, потому что
+RabbitMQ может не записутится, если hostname поменяется в будущем.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image24.png){width="5.455555555555556in"
+height="1.0041666666666667in"}
+
+3.4. Далее как по [**старым гайдам**](#epel-releace) устанавливаем wget
+и epel-release.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image25.png){width="4.489583333333333in"
+height="2.5208333333333335in"}
+
+3.5. Потом как по [**старым гайдам**](#erlang) устанавливаем Erlang, но
+на этот раз без socat и logrotate (видимо не так они и нужны), а также
+понимаем, что в прошлый раз скачали старую версию
+(erlang-solutions-1.0-1), из-за чего могли и возникнуть трудности.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image26.png){width="5.850694444444445in"
+height="1.0638888888888889in"}
+
+3.6. На этом шаге уже стущественные отличия, а именно нужно создать и
+заполнить файл **/etc/yum.repos.d/rabbitmq.repo** (конфигурация
+репозитория), возможно в старых гайдах это производилось автоматически.
+Nano на Centos не предустоновлено так что пользуемся vi.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image27.png){width="5.207638888888889in"
+height="1.7756944444444445in"}
+
+Обновляем кэш репозиториев yum и уже монжно наблюдать как все красиво:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image28.png){width="4.524305555555555in"
+height="2.3in"}
+
+3.7. Момент истины, загружаем rabbitmq-server и запускаем его.
+Загрузилось нормально ухх, включалось долго (чуть инфваркт не схватил),
+и..... (драматическая пауза) да Высшие Силы сжалились надо мной и все
+запустилось, ни фаервлолл ни SELinux настраивать (пока) не пришлось.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image29.png){width="5.497222222222222in"
+height="0.9847222222222223in"}
+
+Если что вот так выглядело []{#rabbit .anchor}описание установки из
+книги (если вы сюда телепортировались, то сначала телепортируйтесь
+[**сюда**](#sorry)):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image30.png){width="6.6930555555555555in"
+height="0.8618055555555556in"}
+
+3.8. Постоянная рубрика «Удобные команды» на этот раз RabbitMQ (правда
+они вряд ли понадобятся, напрямую с RabbtMQ работает только Openstack, а
+нет понадобятся для настройки пользователя):
+
+-   **rabbitmqctl delete_user user** --- удалить пользователя
+
+-   **rabbitmqctl change_password user strongpassword** --- сменить
+    пароль пользователя
+
+-   **rabbitmqctl add_vhost /my_vhost** --- добавить
+    [**virtualhost**](http://VirtualHost/)
+
+-   **rabbitmqctl list_vhosts** --- список virualhosts
+
+-   r**abbitmqctl delete_vhost /my_vhost** --- удалить virtualhost
+
+-   **rabbitmqctl set_permissions -p /my_vhost user \".\*\" \".\*\"
+    \".\*\"** - дать разрешение пользователю внутри virtualhost
+
+-   **rabbitmqctl list_permissions -p /my_vhost** --- список разрешений
+    внутри virtualhost
+
+-   r**abbitmqctl list_user_permissions user** --- список всех
+    разрешений пользователя
+
+-   **rabbitmqctl clear_permissions -p /my_vhost user** --- удалить
+    разрешение пользователя внутри virtualhost
+
+-   **rabbitmqcrl status** --- статус сервиса rabbitmq-server
+
+-   **rabbitmqctl create_uers user stronpassword** --- создать
+    пользователя
+
+-   **rabbitmqctl list_users** --- список пользоватлей
+
+-   **rabbitmqctl set_user_tags user tag** --- присвоит тэг пользователю
+
+3.9. Оказвается я пропустил некоторые настройки из начала книги, а
+именно обновление всех установленных пакетов:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image31.png){width="1.8729166666666666in"
+height="0.5944444444444444in"}
+
+Отключение network manager и редактирование файла ifcfg-eth0 (поправить
+параметры NM_CONTROLLED и ONBOOT, а также проверить настройку ip адресса
+и тд) в папке **/etc/sysconfig/network-scripts/**, так как
+NetworkManager будет мешать работе Openstack Neutron, судя по
+[**документации
+RedHat**](https://access.redhat.com/documentation/en-us/red_hat_openstack_platform/10/html/manual_installation_procedures/chap-prerequisites):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image32.png){width="3.040277777777778in"
+height="0.6527777777777778in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image33.png){width="3.2666666666666666in"
+height="3.1055555555555556in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image34.png){width="4.459027777777778in"
+height="0.8868055555555555in"}
+
+Отключение фаерволла, а я то мучался ([**firewalld не используется даже
+когда
+хочется**](https://access.redhat.com/documentation/en-us/red_hat_openstack_platform/10/html/manual_installation_procedures/chap-prerequisites),
+вместо него используется iptables, будем их настраивать во время
+настройки Neutron):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image35.png){width="4.292361111111111in"
+height="0.8965277777777778in"}
+
+Установка пакета openstack-selinux (**sudo** **yum -y install
+openstack-selinux**) или отключчение SELinux (я решил отключить
+(изменить поле SELINUX в файле **/etc/sysconfig/selinux**, потом
+перезагрузиться), так как не особо разбираюсь в данной технологии, но
+может быть изучу, года наконец разверну кластер):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image36.png){width="5.134722222222222in"
+height="1.7131944444444445in"}
+
+Проверка после перезагрузки:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image37.png){width="1.542361111111111in"
+height="0.6402777777777777in"}
+
+Установка chrony, как на хосте, у меня он уже был предустановлен и
+настроен (вроде бы устнавливал только на хост машину):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image38.png){width="2.2131944444444445in"
+height="0.8069444444444445in"}
+
+Установка [**crudini**](http://www.pixelbeat.org/programs/crudini/) для
+редактирования конфигурационных файлов:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image39.png){width="2.8256944444444443in"
+height="0.6513888888888889in"}
+
+Пример команды для редактирования конфига (не буду же я одну команду
+выносить в рубрику):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image40.png){width="5.997222222222222in"
+height="0.46944444444444444in"}
+
+[]{#sorry .anchor}НО это все равно не меняет того, что способ установки
+RabbitMQ представленный в книге неполный, хотя и была показана установка
+репозитория epel-release (выполните две команды ниже и
+[**назад**](#rabbit)).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image41.png){width="3.7631944444444443in"
+height="0.7236111111111111in"}
+
+3.10. Ну теперь можно заняться настройкой RabbitMQ. Для начала настроим
+аунтефикацию, в руководствах говорится что есть два способа
+аунтефикации: с использованием имени и пароля SASL-аутентификации
+(Simple Authentication and Security Layer), обеспечиваемой фреймворком
+Erlang, и при помощи сертификатов и SSL. Я решил (посмотрел в
+руководствах), что буду реализовывать первый способ + все сервисы будут
+работать под одним пользователем RabbitMQ (да я знаю, что так не очень
+безопасно, но я и фаерволл уже вырубил). Что касается
+SASL-аутентификации в RabbitMQ, то есть два метода:
+[**PLAIN**](https://www.rabbitmq.com/access-control.html#:~:text=Description-,PLAIN,-SASL PLAIN authentication)
+и
+**[AMQPLAIN](https://www.rabbitmq.com/access-control.html#:~:text=most other clients.-,AMQPLAIN,-Non-standard version)**
+и дефолтный пользователь guest.
+
+Создаем пользователя openstack/openstack для настройки сервисов
+Openstack и добавляем ему парава на настройку, чтение и запись:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image42.png){width="3.720833333333333in"
+height="1.1625in"}
+
+Для дальнейшего удобства активируем графическую кносоль RabbitMQ, она
+будет работать на порту 15672:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image43.png){width="5.324305555555555in"
+height="1.0222222222222221in"}
+
+Для того чтобы получить доступ к в браузере обращаемся к
+192.168.122.200:15672 (к моему большому удивлению проброс портов
+осуществлять не надо было). Для регистрации необходимо присвоить один из
+тэгов (management, policymaker, monitoring, administrator) созданному
+ользователю openstack, так как за пользователя guest зайти будет нелья,
+из-за того что он может коннектиться [**только через loopback
+интерфейс**](https://www.rabbitmq.com/access-control.html#:~:text=). Я
+пока не знаю какой тег больше подойдет для пользователя openstack, когда
+узнаю нужный подчеркну выше. А пока побыстрому создал пользователя test
+для проверки работоспособности web интерфейса.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image44.png){width="4.399305555555555in"
+height="1.6923611111111112in"}
+
+Все нормально работает, главное выставить тэг:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image45.png){width="4.805555555555555in"
+height="1.9666666666666666in"}
+
+4\. Установка и настройка БД MariaDB и PyMySQL.
+
+4.1. Итак мы наконец закончили с конфигруацией RabbitMQ, теперь можно
+приступить к конфигрурирования БД для использования сервисами Openstack.
+Качаем MariaDB и клиентскую библиотеку PyMySQ с помощью одной команды!
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image46.png){width="5.397222222222222in"
+height="0.6138888888888889in"}
+
+4.2. Создаем файл **/etc/my.cnf.d/openstack.cnf** с конфигом mysqld и
+запускаем mariadb:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image47.png){width="4.934027777777778in"
+height="2.529166666666667in"}
+
+-   [**bind-address**](https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_bind_address:~:text=в MySQL» .-,bind_address,-Формат командной строки)
+    = 192.168.122.200 --- ip-адрес контроллера БД
+
+-   [**default-storage-engine**](https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_bind_address:~:text=Управление паролями» .-,default_storage_engine,-Формат командной строки)
+    = innodb - механизм хранения для таблиц по умолчанию, в данном
+    случае [**innodb**](https://animatika.ru/info/gloss/innodb.html)
+    (данные хранятся в больших совместно используемых файлах).
+
+-   [**innodb_file_per_table**](https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_file_per_table:~:text=WITH_DEBUG CMake option.-,innodb_file_per_table,-Command-Line Format)
+    = on --- для каждой таблицы будет создаваться новый файл
+
+-   [**max_connections**](http://max_connections/) = 4096 ---
+    максимальное количество подкючений
+
+-   [**collation-server**](https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_collation_server:~:text=the default database.-,collation_server,-Command-Line Format)
+    = utf8_general_ci --- тип сервера сарвнения и сортировки строк,
+    [**utf8_general_ci**](https://webcache.googleusercontent.com/search?q=cache:5FVk_T2r3uoJ:https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-sets.html&cd=2&hl=ru&ct=clnk&gl=ru#:~:text=Ü %3D Y < Ö-,_general_ci Versus _unicode_ci Collations,-For any Unicode)
+    --- дефолт для utf8.
+
+-   [**character-set-server**](https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_collation_server:~:text=and error messages.-,character_set_server,-Command-Line Format)
+    = utf8 --- тип набора символов на сервере
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image48.png){width="5.147222222222222in"
+height="0.925in"}
+
+4.3. Запускаем супер-пупер мега скрипт
+[**mysql_secure_installation**](https://mariadb.com/kb/en/mysql_secure_installation/),
+который поможет безопасно установить MariaDB (что в принципе видно из
+названия), во время скрипта можно:
+
+-   Установить пароль для учетных записей root.
+
+-   Удалить корневые учетные записи, доступные из-за пределов локального
+    хоста.
+
+-   Удалить учетные записи анонимных пользователей.
+
+-   Удалить тестовую базу данных, к которой по умолчанию могут
+    обращаться анонимные пользователи.
+
+Я везде отвечал yes (возможно это была критическая ошибка).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image49.png){width="4.882638888888889in"
+height="5.1875in"}
+
+Проверить работу сервиса можно так:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image50.png){width="6.6930555555555555in"
+height="0.5881944444444445in"}
+
+5\. Установка и настройка сервиса идентификации Keystone
+
+5.1. Теперь можно и потихоньку начать настраивать сервисы Openstack, все
+начинается в Keystone. Что такое Keystone --- это сервис идентификации
+Openstack, представляет собой централизованный каталог пользователей и
+сервисов, к которым они имеют доступ. Если хотите еще одно
+синонимическое описание то вот: Keystone - единая система аутентификации
+и авторизации облачной операционной системы.Сервис поддерживает
+следующие типы аутенфикации:
+
+-   Аутентификация по токенам
+
+-   Аутентификация при помощи пары имя пользователя/пароль
+
+-   AWS-совместимая аутентификация
+
+Также Keystone хранит в себе список всех доступных сервисов в Openstack
+и реквизитов для обращения к их API (без привязки к пользователю), из
+чего следует, что и поднимать его нужно первым, ведь потом каждый
+последующий сервис надо в нем регистрировать.
+
+Что такое Сервис, Пользователь и Токен и так понятно, а вот Проект
+что-то новое --- это объединение Ресурсов (виртуальные машины, образы и
+т. д.), придуман чтобы контролировать права пользователей, чтобы они
+могли видеть и работать с ВМ только внутри одного проекта (изначально
+думал, что это типо Namespace, но есть еще Домен). Также в Openstack как
+и в Kubernetes Пользователи напрямую не имеют доступ к Ресурсам
+Проектов, а получают его через так называемые Роли (понятно для чего так
+придумано, чтоб можно было создавать кастомные права доступа и быстро их
+назначать пользователям). Думали все, а нет, еще есть Домены ---
+объединения Проектов, уже полные аналоги Namespase. Ладно по теории
+вроде бы все теперь качаем.
+
+5.2. Качаем пакеты openstack-keystone (сам Keystone)
+[**pythonopenstackclient**](https://github.com/openstack/python-openstackclient)
+(удобный CLI для работы с Openstack)
+[**httpd**](https://httpd.apache.org/) (http сервер)
+[**mod_wsgi**](https://modwsgi.readthedocs.io/en/master/) (модуль http
+сервера для связи сервера и прогрмаммой на python) с помощью yum.
+**Проблема** подкралась незаметно --- пакеты openstack-keystone и
+pythonopenstackclient **не скачались**, но хоть фиксится просто во
+первых в файле **/etc/yum.repos.d/epel.repo** []{#disable
+.anchor}дизейблим все репозитории (enabled=0), а во-вторых я дефис забыл
+в названии пакета **python-openstackclient**.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image51.png){width="6.6930555555555555in"
+height="0.5166666666666667in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image52.png){width="6.6930555555555555in"
+height="1.7840277777777778in"}
+
+5.3. Как уже говорилось, для каждого сервиса Opensatack необходима
+отдельная БД, которую надо создавать руками, если происходит установка
+каждого сервиса отдельно, так что создаем Keystone БД, также надо выдать
+привилегии, чтобы сервис мог нормально работать с БД.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image53.png){width="5.555555555555555in"
+height="1.2291666666666667in"}
+
+5.4. В конфиг Keystone (**/etc/keystone/keystone.conf**) пишем путь к
+БД, можно с помощью crudini, можно с vi и тд.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image54.png){width="6.6930555555555555in"
+height="0.9798611111111111in"}
+
+5.5. Задаем формат и провайдер токенов генерируемых сервисом Keystone.
+Формат токенов на выбор:
+
+-   **UUID** - строка из 32 символов, которую удобно использовать в
+    вызовах OpenStack API, например применяя команду curl. Круто -
+    небольшой размер, не круто -- токен не содержит информации,
+    достаточной для того, чтобы произвести локальную авторизацию
+    (сервисы OpenStack каждый раз должны отправлять токен сервису
+    Keystone, для того чтобы получить информацию, какие операции
+    разрешены с этим токеном).
+
+-   **PKI** - содержат всю необходимую для локальной авторизации
+    информацию и, кроме того, содержат в себе цифровую подпись и
+    информацию об устаревании, а значит сервисы OpenStack могут локально
+    кэшировать эти токены. Круто --- нет теперь дудоса токенами, не
+    круто --- токены большие (могут быть больше 8 Кб), и некоторые
+    сервисы не поддерживают HTTP-заголовки такого размера, и еще как с
+    curl работать, когда у тебя заголовок на 8 Кб.
+
+-   **PKIz** --- пытались пофиксить проблемы PKI, но ничего не вышло, и
+    они ушли в небытие.
+
+-   **Fernet** - небольшого размера (до 255 символов), но содержат
+    достаточно информации для локальной авторизации. Их не требуется
+    синхронизировать между регионами, для них не нужна база данных
+    (токены без сохранения состояния), и процесс генерации их быстрее,
+    чем в первых двух реализациях. Дополнительным плюсом будет
+    отсутствие необходимости настройки memcached (можно не кешировать,
+    но по итогу все равно надо, если хочешь быть крутым). **Их и
+    используем.**
+
+Выставляем провайдера токенов в файле **/etc/keystone/keystone.conf**
+сами знаете как.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image55.png){width="4.720138888888889in"
+height="0.9701388888888889in"}
+
+5.6. Инициализируем базу данных (скрипт **keystone-manage db_sync**)
+репозитории ключей Fernet (2 команды - keystone-manage **fernet_setup**
+и **keystone-manage credential_setup**).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image56.png){width="5.3902777777777775in"
+height="0.8798611111111111in"}
+
+5.7. Конфигурируем Apache httpd (доменное имя сервера) - сервис
+идентификации для сетевого взаимодействия, путем редактирован файла
+**/etc/httpd/conf/httpd.conf** (без использования cruduini).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image57.png){width="3.4715277777777778in"
+height="0.9416666666666667in"}
+
+Также создаем и редактируем файл
+**/etc/httpd/conf.d/wsgi-keystone.conf** (это конфигурация модуля http
+сервера для связи сервера и прогрмаммой на python).
+
+Ну чтож вот
+**[оп](https://www.opennet.ru/docs/RUS/apache_dir/#Location)исание
+полей**:
+
+-   **Listen** --- на каком порту работает
+
+-   **VirtualHost** --- имя virtualhost (люое на таком-то порту)
+
+-   **WSGIDaemonProcess** --- создать отдельные процессы демона, которым
+    будет делегирован запуск приложений WSGI.
+
+-   **WSGIProcessGroup** --- в какой группе процессов будет выполняться
+    приложение WSGI.
+
+-   **WSGIScriptAlias** --- помечает каталог как содержащий сценарии
+    WSGI
+
+-   **WSGIApplicationGroup** --- какой группе приложений принадлежит
+    приложение WSGI.
+
+-   **WSGIPassAuthorization** - передаются ли заголовки авторизации HTTP
+    в приложение WSGI.
+
+-   **LimitRequestBody** - максимальное количество байт, которое может
+    быть в запросе.
+
+-   **IfVersion** --- если версия Apache больше/меньше
+
+-   **ErrorLogFormat** --- формат лога ошибки
+
+-   **ErrorLog** --- файл сохраения логов
+
+-   **CustomLog** --- файл сохранения логов доп хоста
+
+-   **Directory** --- местонахождение проекта
+
+-   **Require** **all** **granted** --- нет IP-адресов, заблокированных
+    для доступа к сервису (новая версия)
+
+-   **Order** **allow,deny** ---
+    [**настройка**](https://habr.com/ru/post/81858/) системы контроля
+    доступа
+
+-   **Allow from all** --- нет IP-адресов, заблокированных для доступа к
+    сервису (старая версия)
+
+-   **Alias** --- сопоставление URL-адреса с путем файловой системы
+
+-   **Location** --- внутри настройки управления доступа к URL
+
+-   **SetHandler** --- просмотр определнного хендлера
+
+-   **Options** --- разрешенные особенности сервера
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image58.png){width="3.4319444444444445in"
+height="7.95625in"}
+
+Наконец-то запускаем веб-сервер:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image59.png){width="5.472222222222222in"
+height="1.0041666666666667in"}
+
+5.8. Теперь инициализируем Keystone. Опять же есть два варината
+инициализации:
+
+-   Использовать команду keystonemanage bootstrap, которая выполнит
+    инициализацию за нас (рекомендовано разработчиками, поле того как
+    попробовал второй способ использовал этот):
+
+Данная команда создаст за нас записи о сервисе Keystone, точки входа
+(admin, internal и public) в сервис Keystone и регион в котором
+расположен сервис Keystone, а также default домен, проект admin,
+пользователь admin и роль admin и соеденит их:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image60.png){width="4.824305555555555in"
+height="1.0638888888888889in"}
+
+Измененный скрипт (создаем сами, PS1 --- для красивого названия в
+консоли):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image61.png){width="4.855555555555555in"
+height="1.8270833333333334in"}
+
+Созданные ресурсы:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image62.png){width="3.7395833333333335in"
+height="2.7104166666666667in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image63.png){width="5.438888888888889in"
+height="3.910416666666667in"}
+
+-   Воспользоваться авторизационным токеном (общий секрет между Keystone
+    и другими сервисами, а также вход в админку без пароля), долго, но
+    зато идеально для понимания процессов (мой выбор, который был
+    изменен на первый способ, так как этот способ был
+    [**вырезан**](https://docs.openstack.org/keystone/rocky/admin/identity-auth-token-middleware.html#:~:text=The admin_token option is deprecated and no longer used for configuring auth_token middleware.)):
+
+Для начала надо сгенерировать токен с помощью OpenSSL и поместить его в
+файл конфига Keystone:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image64.png){width="6.038888888888889in"
+height="1.270138888888889in"}
+
+Неможко займемся оптимизацией и напишем скрипт для задания значений
+переменным окружения (OS_TOCKEN --- наш токен, OS_URL --- URL Keystone,
+OS_IDENTITY_API_VERSION --- версия API Keystone)
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image65.png){width="5.847222222222222in"
+height="1.34375in"}
+
+После попытки отправки запроса на сервер, было получено много различных
+ошибок.
+
+5.9. После того как помучились с иницализацией создадим
+непривилегированного пользователя и все что для него надо (admin
+пользователь был создан автоматически).
+
+Создаем проект demo:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image66.png){width="5.336805555555555in"
+height="2.213888888888889in"}
+
+Создаем пользователя demo с собственным email:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image67.png){width="4.74375in"
+height="2.3965277777777776in"}
+
+Создаем роль user:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image68.png){width="4.728472222222222in"
+height="2.311111111111111in"}
+
+Добавляем роль user в проекте demo пользователю demo:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image69.png){width="6.6930555555555555in"
+height="1.3666666666666667in"}
+
+Скрипт для входа за user ():
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image70.png){width="5.1305555555555555in"
+height="1.9555555555555555in"}
+
+5.10. Создаем проект service для всех сервисов Openstack:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image71.png){width="5.805555555555555in"
+height="2.2506944444444446in"}
+
+С Keystone пока закончили, теперь можно перечислить полезные команды
+openstack:
+
+-   **openstack user list** --- список пользователей
+
+-   **openstack role list** --- список ролей
+
+-   **openstack role assignment list** --- список назначения ролей
+
+-   **openstack domain list** --- список доменов
+
+-   **openstack volume list** --- скписок томов
+
+-   **openstack server add volume имя_ВМ имя_тома** --- подключение тома
+    к ВМ
+
+-   **openstack server remove volume имя_ВМ имя_тома** --- отключение
+    тома от ВМ
+
+-   **openstack service list** --- список сервисов
+
+-   **openstack project list** --- список проектов
+
+-   **openstack catalog list** --- список каталогов
+
+-   **openstack network agent list** --- список сетевых агентов (dhcp,
+    open vswitch и тд)
+
+-   **openstack compute service list** --- список служб Nova
+
+-   **openstack host list** --- список узлов
+
+-   **opensatck hypervisor show имя_узла** --- информация о гипервизоре
+    узла
+
+-   **openstack endpoint list** --- список конечных точек
+
+-   **opensatck image list** --- список образов
+
+-   **openstack image save имя_образа \> путь_куда_сохранять** ---
+    скачать образ на локальеую машину
+
+-   **opensatck тип show имя_объекта** --- информация о конуретом
+    объекте
+
+-   **openstack тип delete имя_объекта** --- удаление объекта
+
+-   **openstack service create \--name имя_сервиса ---description
+    \"описание\" тип_сервиса** --- создание сервиса
+
+-   **openstack endpoint create тип_точки тип_интерфейса url \--region
+    регион** --- создание конечной тчки
+
+-   **openstack domain create \--description \"описание\" имя_домена**
+    --- создание домена
+
+-   **openstack project create \--domain имя_домена \--description
+    \"описание\" имя_проекта** --- создание проекта
+
+-   **openstack user create \--domain имя_домена \--email
+    почта_пользователя \--password пароль_пользователя
+    имя_пользователя** --- создание пользователя
+
+-   **openstack role create имя_роли** --- создание роли
+
+-   **openstack role add \--project имя_проект \--user имя_пользователя
+    имя_роли** --- создание назначения роли (привязка роли к
+    пользователю)
+
+-   **opensatck тип set \--имя_поля значение_поля имя_объекта** ---
+    изменение полей объекта
+
+-   **opensatck тип unset \--имя_поля значение_поля имя_объекта** ---
+    удаление поля объекта
+
+-   **openstack \--debug** --- полезный флаг для просмотра вызовов к
+    Openstack API
+
+-   **openstack token issue** --- запрос токена для аунтефикации
+
+-   **openstack keypair create имя_пары \> файл_сохранения_пары** ---
+    создание пары ssh ключей
+
+-   **source keystonerc_adm** --- запуск скриптов
+
+-   **env** --- просмотр переменных окружения
+
+-   **/etc/имя_сервиса/имя_сервиса(или)службы.conf** --- файлы конфигов
+
+-   **/var/log/имя_сервиса/имя_сервиса-имя_службы.log** --- файлы логов
+    (некоторые тут **/var/log/httpd/\***)
+
+6\. Установка и настройка сервиса хранения образов Glance
+
+Перед началом хочется отмтить, что обращения к Openstack API начали
+проходить достаточно медленно, после перезагрузки машины, возможно я дал
+ВМ слишком мало системных ресурсов, а может так и должно быть, вобщем
+пугаться долгих ответов сервера не надо, ниче не умерло.
+
+6.1. Чтож для чего нам нужен Glance? Glance - ведет каталог,
+регистрацирует и доставляет образы виртуальных машин (как известно образ
+представляет собой шаблон для ВМ, может быть просто ОС, а может и
+содержать предустановленные пакеты). НО Glance самостоятельно не хранит
+образы, а использует для этого систему хранения данных (Swift, Ceph или
+просто локально на узле), информация же об размере, формате, имени
+образа и т. д. хранится в БД. Поддерживабтся следующие форматы образов,
+еще есть образы контейнеров, но это уже другая история:
+
+-   **vhd** (Virtual Hard Disk) --- виртуальный жесткий диск от
+    Microsoft
+
+-   **vmdk** (Virtual Machine Disk) --- диск виртуальной машины от
+    VNware
+
+-   **vdi** (Virtual Disk Image) --- образ виртуального диска от
+    VirtualBox(Oracle)
+
+-   **iso** (International Organization for Standardization) --- образ
+    оптического диска от International Organization for Standardization
+
+-   **qcow2** (QEMU Copy On Write 2) --- образ QEMU
+
+-   **ami** --- образ Amazon Machine
+
+-   **ari** --- образ Amazon Ramdisk
+
+-   **aki** --- образ Amazon Kernel
+
+-   **vhdx** --- улучшенная версия vhd
+
+-   **raw** --- диск неструктурируемого формата RAW
+
+Стоит отметить, что данный сервис состоит из двух служб:
+
+-   **glance-api** -- предоставляет доступ к REST API сервиса образов
+    для поиска, хранения и получения образов;
+
+-   **glance-registry** -- хранит, обрабатывает и предоставляет
+    информацию. Непосредственно пользователи не взаимодействуют с этим
+    сервисом, только сервисы Glance.
+
+Вот красивая картинка компонентов Glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image72.png){width="4.3in"
+height="3.1in"}
+
+Что происходит когда мы отправляем запрос на создание ВМ --- Nova (еще
+не созданный сервис по управлению виртуальными машинами и сетью)
+отправляет GET-запрос по адресу
+**http://путь-к-сервису-glance/images/идентификатор-образа**. В случае
+если образ найден, то glance-api возвращает URL, ссылающийся на образ.
+Nova передает ссылку драйверу гипервизора, который напрямую скачивает
+образ и запускает ВМ.
+
+6.2. Теперь начинается практика, первым делом добавляем все необходимые
+компоненты в а\\наш Keystone:
+
+Создаем пользователя glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image73.png){width="5.447222222222222in"
+height="1.9965277777777777in"}
+
+Присваиваем пользователю glance роль admin в проекте serivce:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image74.png){width="5.6618055555555555in"
+height="0.5284722222222222in"}
+
+Создаем сервис glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image75.png){width="5.147222222222222in"
+height="2.10625in"}
+
+Cоздадем точки входа для сервиса glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image76.png){width="4.679166666666666in"
+height="7.404166666666667in"}
+
+6.3. Теперь устанавливаем Glance с помощью yum:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image77.png){width="3.9006944444444445in"
+height="0.5944444444444444in"}
+
+6.4. Создаем БД glance и выдаем на нее права:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image78.png){width="5.3805555555555555in"
+height="1.1527777777777777in"}
+
+6.5. Прописываем строку подключения к базе данных в файлах конфигов
+служб glance-api (**/etc/glance/glance-api.conf**) и glance-registry
+(**/etc/glance/glance-registry.conf**):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image79.png){width="5.388888888888889in"
+height="2.2083333333333335in"}
+
+6.6. Завершаем настройку БД glance с помщью скрипта (db_sync):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image80.png){width="4.582638888888889in"
+height="0.9006944444444445in"}
+
+6.7. Все что касается БД glance настроено, теперь настроим сам службу
+glance-api через конфиг (**/etc/glance/glance-api.conf**):
+
+Настраиваем тип сервис аунтефикации:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image81.png){width="6.6930555555555555in"
+height="0.5236111111111111in"}
+
+Насраиваем разрешенный ip отправителя запросов к серивсу Glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image82.png){width="6.6930555555555555in"
+height="0.5847222222222223in"}
+
+Настраиваем URL аунтефикации:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image83.png){width="6.6930555555555555in"
+height="0.7576388888888889in"}
+
+Настраиваем тип авторицазции:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image84.png){width="6.6930555555555555in"
+height="0.4708333333333333in"}
+
+Настравиваем имя домена в котором нахоится проект glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image85.png){width="6.6930555555555555in"
+height="0.42777777777777776in"}
+
+Настравиваем имя домена в котором нахоится пользователь glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image86.png){width="6.6930555555555555in"
+height="0.4409722222222222in"}
+
+Настриваем имя проекта в котором находится пользователь glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image87.png){width="6.6930555555555555in"
+height="0.46041666666666664in"}
+
+Настриваем имя пользователя:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image88.png){width="6.6930555555555555in"
+height="0.48680555555555555in"}
+
+Настраиваем пароь пользователя glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image89.png){width="6.6930555555555555in"
+height="0.4708333333333333in"}
+
+Настраивем тип хранения образов (локальная файловая система):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image90.png){width="6.6930555555555555in"
+height="0.5048611111111111in"}
+
+Настраиваем путь к папке, гдк будут хранится образы:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image91.png){width="6.6930555555555555in"
+height="0.7784722222222222in"}
+
+Также стоит отметить, что можно добавить несколько хранилищ образов с
+приоритетом (больше цифра - больше приоритет сохранения образа) по
+использованию, но я так не делал:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image92.png){width="5.480555555555555in"
+height="1.0131944444444445in"}
+
+Поля файла glance-api.conf после исполнения команд (легко найти через
+vi, потом /техт, который надо найти):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image93.png){width="4.378472222222222in"
+height="3.23125in"}
+
+6.8. Теперь настроим сам службу glance-registry через конфиг
+(**/etc/glance/glance-registry.conf**), те же самые названия полей,
+кроме секции glance_store:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image94.png){width="6.6930555555555555in"
+height="1.9694444444444446in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image95.png){width="4.824305555555555in"
+height="2.8465277777777778in"}
+
+6.9. Настраиваем параметры подключения к сервису RabbitMQ для службы
+glance-api (**/etc/glance/glance-api.conf**):
+
+Настриваем пароль пользователя RabbitMQ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image96.png){width="6.6930555555555555in"
+height="0.4930555555555556in"}
+
+Настриваем имя пользователя RabbitMQ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image97.png){width="6.6930555555555555in"
+height="0.5048611111111111in"}
+
+Настриваем имя хоста RabbitMQ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image98.png){width="6.6930555555555555in"
+height="0.45069444444444445in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image99.png){width="4.435416666666667in"
+height="1.61875in"}
+
+6.10. Запускае сконфигурированные службы glance-api и glance-registry:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image100.png){width="6.6930555555555555in"
+height="1.0131944444444445in"}
+
+Папку для хранения образов нужно создать, а то glance-api не запустится
+(словил прикол, что у glance-api не было разрешений на файл, в котором
+хранятся логи - **/var/log/glance/api.log**). Решение прикола с
+разешениями:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image101.png){width="4.771527777777778in"
+height="0.9284722222222223in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image102.png){width="6.6930555555555555in"
+height="1.1902777777777778in"}
+
+6.11. Итак мы все насторили и запустили, теперь можно затестить
+
+Для начала скачаем образ CirrOS -- минималистская операционная система с
+помшью wget:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image103.png){width="6.6930555555555555in"
+height="0.46597222222222223in"}
+
+Необходимо также установить qemu-img, а потом посмотреть информацию о
+скачанном образе:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image104.png){width="4.397916666666666in"
+height="2.3402777777777777in"}
+
+Какую информацию qemu-img:
+
+-   **file format** -- формат диска
+
+-   **virtual size** -- размер диска виртуальной машины
+
+-   **disk size** -- действительный размер файла
+
+-   **cluster_size** -- размер блока (кластера) qcow
+
+-   **format specific information** -- специфичная для формата
+    информация (**compat** --- версия QEMU, l**azy refcounts** --- если
+    on, то отключен ввод вывод метаданыых, **refcount bits** --- размер
+    refcount table (но я не уверен), **corrupt** --- искаженные данные
+    или нет)
+
+Далее надо скачать какую-нибудь утилиту автоматизированного создания
+образов, я выбрал Oz, которая использует заранее подготовленные файлы
+ответов неинтерактивной установки операционной системы. Если во время
+установки Keystone, были ошибки как и у меня и поэтому пришлось
+отключить epel repo, то его (и только его) надо опять
+[**включить**](#disable).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image105.png){width="3.011111111111111in"
+height="0.69375in"}
+
+Прверяем, что сеть libvirtd (перед этим libvirtd надо врубить),
+используемая по умолчанию с помощью команды **virsh net-list**, если
+нет, то определяем ее и задаем автозапуск сети:
+
+Врубаем libvirtd:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image106.png){width="6.6930555555555555in"
+height="1.2027777777777777in"}
+
+У меня после запуска libvirtd дефолтная сеть задалась автоматически:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image107.png){width="4.920138888888889in"
+height="1.3055555555555556in"}
+
+Если у вас команда **virsh net-list** вывела что-то другое, то исполните
+две команды **net-define** (инициализация сети) и **net-autostart**
+(автостарт сети):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image108.png){width="6.6930555555555555in"
+height="1.0020833333333334in"}
+
+6.12. Теперь, после того как скачали oz и настроили дефолтную сеть,
+можно начать настраивать oz.
+
+Сначала зададим в качестве типа образа формат qcow2 в файле конфиграции
+oz (**/etc/oz/ oz.cfg**):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image109.png){width="5.1618055555555555in"
+height="1.4111111111111112in"}
+
+Теперь выбираем TDL шаблон для создания образа, примеры TDL шаблонов
+находятся в папке **/usr/share/doc/oz-0.15.0/examples**. Я списал самый
+простой TDL шаблон, а именно тот в котором определяются только путь к
+дистрибутиву (**\<install\>**) и пароль пользователя root
+(**\<rootpw\>**):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image110.png){width="4.868055555555555in"
+height="2.933333333333333in"}
+
+Полезные секции кроме **\<install\>** и **\<rootpw\>:**
+
+-   **\<packages\>** - установка пакетов
+
+-   **\<repositories\>** - добавление репозиториев
+
+-   **\<files\>** - создание файлов
+
+-   **\<commands\>** - выполнение команд
+
+После создание TDL шаблона можно создать образ с помощью oz-install
+(**-t ---** через сколько секунд инсталлятор должен прервать установку,
+**-d** --- показывает уровень сообщений об ошибках (2 --- норм, 3 ---
+подробно)). Создается очень долго:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image111.png){width="5.195138888888889in"
+height="0.6611111111111111in"}
+
+Образ должен появится в папке /**var/lib/libvirt/images**, но он весит
+11GB, так что я его так и не скачал (диск на виртуалке 11GB), дальше
+если хотите подготовить образ к использованию в Openstack надо с помошью
+**virt-sysprep** (надо скачать) убрать специфичную для конкретного
+экземпляра машины информацию, потом уменьшить размер образа (превратить
+в тонкий диск) при помощи **virt-sparsify**. Если надо отредачить уже
+готовый образ то можно скачать **guestfish**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image112.png){width="6.253472222222222in"
+height="0.9361111111111111in"}
+
+6.13. Наконец-то после того как мы поработали с образами сами, можно
+поработать с обаразами с помощью Openstack. Для начала надо добавить в
+оба рабочих файла **keystonerc_adm** и **keystonerc_usr** переменную
+среды, определяющую версию Glance API, с которой мы будем работать
+(OS_IMAGE_API_VERSION=2):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image113.png){width="4.029861111111111in"
+height="1.492361111111111in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image114.png){width="4.204861111111111in"
+height="1.55625in"}
+
+Загружаем наш скачанный образ Cirros в Glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image115.png){width="3.9458333333333333in"
+height="3.129861111111111in"}
+
+Используемые параметры:
+
+**\--file** --- путь до файла с образом
+
+**\--disk-format** --- формат образа диска
+
+**\--container-format** --- формат контейнера (bare --- не контейнер)
+
+**\--public** --- образ доступен всем
+
+Для вас с прошлой строчки прошла одна секунда, а для меня - два дня, так
+как команда на скрине не выполнялась из-за того, что Glance не мог
+авторизоваться в Keystone (я так думал), в результате оказалось, что
+Glance не мог отправить запрос на URL
+<http://controller.test.local:35357/v3/>, так как это доменное имя не
+было прописано в **/etc/hosts** (но ведь запросы к Keystone шли
+норамльно!!!), чтобы все работало надо каждое имя узла добавлять в
+**/etc/hosts** (зато я поработал с файлами логов keystone и glance, а
+также флагом \--debug):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image116.png){width="4.552083333333333in"
+height="0.7166666666666667in"}
+
+После того как образ был загружен, он должен появится в этой папке
+**/var/lib/glance/images/**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image117.png){width="4.325in"
+height="0.5222222222222223in"}
+
+На этом все, но можно добавить, что образы популярных ОС можно найти
+тут:
+
+-   Ubuntu:
+    [**http://cloud-images.ubuntu.com/**](http://cloud-images.ubuntu.com/)
+
+-   Fedora:
+    [**https://cloud.fedoraproject.org/**](https://cloud.fedoraproject.org/)
+
+-   Debian:
+    [**http://cdimage.debian.org/cdimage/openstack/**](http://cdimage.debian.org/cdimage/openstack/)
+
+-   CentOS:
+    [**http://cloud.centos.org/centos/7/**](http://cloud.centos.org/centos/7/)
+
+7\. Установка и настройка сервиса блочного хранилища Cinder
+
+7.1. Cinder придуман для того чтобы хранить модифицированные в ходе
+работы тома, созданных образов, зачем? Ну, например, когда мы создали ВМ
+с помощью сервиса Nova (потом установим) мы с ней работаем (что-то
+устанавливаем, изменяемм и тд), а что если узел на которм была создана
+ВМ выйдет из сторя, и нам нужно ее срочно восстановить, Glance у нас
+хранит только базовые образы и никак не поможет, вот для из-за таких
+ситуаций и придуман Cinder, который записывает все изменения тома на
+узлах, где установлен cinder-volume. Также в Cinder можно не только
+хранить тома, но и создавать их снимки в режиме «только для чтения», с
+помощью которых создавать новые тома, доступные на запись.
+
+Архитекртуа Cinder:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image118.png){width="4.633333333333334in"
+height="3.25in"}
+
+Службы Cinder:
+
+-   **cinder-api** -- точка входа для запросов в сервис по протоколу
+    HTTP. Приняв запрос, сервис проверяет полномочия на выполнение
+    запроса и переправляет запрос брокеру сообщений для доставки другим
+    службам
+
+-   **cinder-scheduler** -- сервис-планировщик принимает запросы от
+    брокера сообщений и определяет, какой узел с сервисом
+    openstack-cinder-volume должен обработать запрос
+
+-   **cinder-volume** -- сервис отвечает за взаимодействие с бэкэндом --
+    блочным устройством. Получает запросы от планировщика и транслирует
+    непосредственно в хранилище. Cinder позволяет одновременно
+    использовать несколько бэкэндов. При этом для каждого из них
+    запускается свой openstack-cinder-volume. И при помощи параметров
+    CapacityFilter и CapacityWeigher можно управлять тем, какой бэкэнд
+    выберет планировщик
+
+-   **cinder-backup** -- сервис отвечает за создание резервных копий
+    томов в объектное хранилище
+
+7.2. К этому пункту свободное место на control узле равнялось 1GB, так
+что надо увеличивать размер:
+
+Первым делом вырубаем VM2 и увеличиваем размер диска qcow2 на 3GB:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image119.png){width="4.624305555555556in"
+height="3.120138888888889in"}
+
+Потом запускаем VM2:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image120.png){width="3.0375in"
+height="1.14375in"}
+
+Теперь с помощью **lsblk** проверяем, что появился диск **/dev/vda2**, а
+с помощью **pvs**, что на нем стоит система:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image121.png){width="5.3694444444444445in"
+height="2.8020833333333335in"}
+
+Скорее всего увеличить размер партиции можно и другим способом, но я
+побоялся эксперементировать и скачал утилиту growpart:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image122.png){width="6.6930555555555555in"
+height="0.7048611111111112in"}
+
+После этого увеличиваем размер раздела **/dev/vda2**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image123.png){width="4.559722222222222in"
+height="2.0805555555555557in"}
+
+И наконец увеличиваем раздел **/dev/mapper/centos-root**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image124.png){width="5.225694444444445in"
+height="2.682638888888889in"}
+
+7.3. Теперь можно начать настройку окружения для сервиса Cinder, для
+этого надо добавть к виртуальной машине еще один диск в качестве
+блочного устройства, созданного с помощью [**Linux
+LVM**](https://habr.com/ru/post/67283/) (испульзует протокол
+[**iSCSI**](https://community.fs.com/ru/blog/iscsi-storage-basics-plan-iscsi-san.html)),
+на который будут писаться все изменения томов ВМ паралельно их записи на
+локальную систему рабочего узла.
+
+Создадим новый диск и прикрепим его к запущенной VM2:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image125.png){width="6.6930555555555555in"
+height="0.8298611111111112in"}
+
+В VM2 проверяем присоедененный диск:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image126.png){width="5.559027777777778in"
+height="2.451388888888889in"}
+
+Теперь создаем LVM-группу на присоедененном диске:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image127.png){width="5.286111111111111in"
+height="1.0569444444444445in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image128.png){width="3.0659722222222223in"
+height="2.3652777777777776in"}
+
+7.3. Теперь качаем пакет openstack-cinder и редачим его конфигурационный
+файл **/etc/cinder/cinder.conf**.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image129.png){width="3.984027777777778in"
+height="0.6069444444444444in"}
+
+Настриваем подключение к БД:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image130.png){width="5.4222222222222225in"
+height="0.6986111111111111in"}
+
+Настраиваем URL, имя и пароль RabbitMQ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image131.png){width="5.552083333333333in"
+height="0.7152777777777778in"}
+
+Как раньше настриваем реквизиты пользователя и проекта в Keystone:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image132.png){width="6.6930555555555555in"
+height="1.9694444444444446in"}
+
+Настройкв имени lvm-группы:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image133.png){width="6.6930555555555555in"
+height="0.5298611111111111in"}
+
+Настриваем бэкенд хранения Cinder, а также драйвер (отвечает за хранение
+данных при помощи локального менеджера логических томов и протокола
+транспорта iSCSI) для него:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image134.png){width="6.6930555555555555in"
+height="0.8472222222222222in"}
+
+Настриваем использемый протокол транспорта и возможность использовать
+команду cinder-rtstool для управления томами (lioadm --- поддержка
+[**LIO
+iSCSI**](https://habr.com/ru/post/200466/#:~:text=Встречайте%2C вот они.-,LIO,-linux-iscsi.org)):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image135.png){width="6.6930555555555555in"
+height="0.7784722222222222in"}
+
+Настройка URL Glance API:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image136.png){width="6.6930555555555555in"
+height="0.6451388888888889in"}
+
+Настройка пути к папке, где будут хранится
+**[lock-файлы](https://docs.openstack.org/oslo.concurrency/ussuri/admin/index.html)**
+(файлы, создаваемые сервисами для межпроцессорной блокировки):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image137.png){width="6.6930555555555555in"
+height="0.44583333333333336in"}
+
+7.4. Теперь аналгочно прошлым настройка создаем БД Cinder:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image138.png){width="4.730555555555555in"
+height="1.0131944444444445in"}
+
+Во время выполнения скрипта синхронизации вылезают сообщения об
+устаревших полях, полностью их игнорим, БД и так поднимется:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image139.png){width="6.6930555555555555in"
+height="0.5152777777777777in"}
+
+7.5. Теперь регистрируем сервис Cinder в Keystone:
+
+Создаем пользователя и предоставлем ему роль:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image140.png){width="4.299305555555556in"
+height="1.8451388888888889in"}
+
+Создаем сервисы cinderv2 и cinderv3. Раньше надо было иметь две версии
+cinder для полной совместимости с остальными серивсам, но вроде как это
+уже [**не
+необходимо**](https://docs.openstack.org/cinder/latest/install/cinder-controller-install-rdo.html#:~:text=Beginning with the Xena release)
+и можно ограничится только сервисом cinderv3 (я боюсь и разверну 2
+сервиса):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image141.png){width="4.691666666666666in"
+height="2.2756944444444445in"}
+
+Соответсвенно раз серивиса два, то и точек входа в два раза больше:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image142.png){width="5.096527777777778in"
+height="2.2180555555555554in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image143.png){width="4.018055555555556in"
+height="9.10625in"}
+
+7.6. Теперь устанавливаем и настраиваем сервис iSCSI, по идее следующие
+действи я надо производить на других узлах для большей доступности и
+отказоустойчивости, пожтому некоторые команды могут повторяться.
+
+Устанавливаем
+[**targetcli**](https://www.saqwel.ru/articles/linux/nastrojka-linux-iscsi-posredstvom-targetcli/)
+(оболочка для управления LIO iSCSI):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image144.png){width="3.4319444444444445in"
+height="0.6291666666666667in"}
+
+Задаем ip машины на которой будет находится cinder-volume:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image145.png){width="6.6930555555555555in"
+height="0.5395833333333333in"}
+
+Задаем бэкенд хранения Cinder:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image146.png){width="6.6930555555555555in"
+height="0.5395833333333333in"}
+
+По итогу всех махинаций наш конфиг (**/etc/cinder/cinder.conf**)
+выглядит так:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image147.png){width="4.975694444444445in"
+height="4.483333333333333in"}
+
+7.7. Теперь запускаем все что можно:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image148.png){width="5.29375in"
+height="1.6729166666666666in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image149.png){width="5.7027777777777775in"
+height="1.6548611111111111in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image150.png){width="5.752083333333333in"
+height="1.8180555555555555in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image151.png){width="5.838888888888889in"
+height="1.8451388888888889in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image152.png){width="5.861805555555556in"
+height="1.8527777777777779in"}
+
+Также все эти службы можно было запустить одной командой с помощью
+пакета
+[**openstack-utils**](https://github.com/redhat-openstack/openstack-utils),
+который надо скачать, так как с помощью него также можно удобно селдить
+за статусами всех сервисов кластера:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image153.png){width="3.682638888888889in"
+height="0.5715277777777777in"}
+
+Запуск всех служб Cinder одной командой:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image154.png){width="3.6326388888888888in"
+height="0.5645833333333333in"}
+
+Просмотр статуса всех сервисов одной командой (если что keystone и
+должен быть в inactive, мы ведь его напрямую не поднимали, а через
+RabbitMQ):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image155.png){width="5.354166666666667in"
+height="5.415972222222222in"}
+
+Также можно посмотреть состояние служб Cinder (cinder-backup по идее
+должен был быть оcтановлен, так как ему не задана конечная точка бэкенда
+хранения этих самых бэкапов (то самый сервис Swift из будущего), он
+почему-то работет, но в логах пишет, что могут быть проблемы):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image156.png){width="6.6930555555555555in"
+height="1.0555555555555556in"}
+
+Содержимое файла логов **/var/log/cinder/backup.log** cinder-backup:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image157.png){width="6.6930555555555555in"
+height="0.8479166666666667in"}
+
+На этом настройка закончена, теперь тестим функционал. Для этого
+попробуем создать том (volume) testvol1:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image158.png){width="3.922222222222222in"
+height="3.5194444444444444in"}
+
+Пока с помощью openctack cli посмотреть на созданный том (**openstack
+volume list**) нельзя, так как мы еще не развернули сервис nova, но
+можно посмотреть с помошью cinder cli:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image159.png){width="6.6930555555555555in"
+height="1.01875in"}
+
+Зря я сделал диск размером всего в 2GB:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image160.png){width="6.6930555555555555in"
+height="0.7840277777777778in"}
+
+7.8. По идее на этом можно закнчивать настройку сервиса Cinder, но надо
+кое-что уточнить, а именно, что в реальной жизни бэкендом cinder-volume
+и cinder-backup должен быть сервис Swift или Ceph, которые нужно
+разворачивать на других узлах. Мой ноут с 8GB оперативки и в перспективе
+двумя рабочими узлами такое точно не потянет, но все-таки было принято
+решение сделать бэкендом cinder-backup nfs сервер расположенный на одном
+из рабочих узлов в качестве эксперимента.
+
+Итак для начала нужно этот рабочий узел поднять (когда я в первом пункте
+сказал, что поднял 3 ВМ, я соврал):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image161.png){width="6.096527777777778in"
+height="1.2854166666666667in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image162.png){width="5.861805555555556in"
+height="0.9361111111111111in"}
+
+Теперь наконец-то понятная настройка ВМ для работы с Openstack (если что
+файл **/etc/hosts** дожен выглядить да всех ВМ одиноково, так что
+редачим его на кождой ВМ):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image163.png){width="5.392361111111111in"
+height="1.4243055555555555in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image164.png){width="5.472916666666666in"
+height="3.035416666666667in"}
+
+Теперь настраиваем все что касается [**nfs
+сервера**](https://winitpro.ru/index.php/2020/06/05/ustanovka-nastrojka-nfs-servera-i-klienta-linux/):
+
+Скачиваем и запускаем nfs-server:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image165.png){width="5.6722222222222225in"
+height="0.8506944444444444in"}
+
+Создаем папку в которая будет общая для всех nfs-клиентов;
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image166.png){width="4.348611111111111in"
+height="0.9652777777777778in"}
+
+Редактируем файл **/etc/exports**, указывая каким ip-фдресам будет
+доступна папка, после чего применяем настройка и перезапускаем
+nfs-сервер:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image167.png){width="5.1722222222222225in"
+height="0.9305555555555556in"}
+
+-   **rw** -- права на запись в каталоге (ro -- доступ только на чтение)
+
+-   **sync** -- синхронный режим доступа (async -- подразумевает, что не
+    нужно ожидать подтверждения записи на диск)
+
+-   **no_root_squash** -- разрешает root пользователю с клиента получать
+    доступ к NFS каталогу (обычно не рекомендуется)
+
+-   **no_all_squash** --- включение авторизации пользователя (all_squash
+    -- доступ к ресурсам от анонимного пользователя)
+
+Теперь попробуем настроить NFS бэкенд для cinder-backup на
+**controllet.test.local** (оказалось, что не обязательно настривать
+nfs-клиента самостояетльно, монтироватьпапки и тд, достаточно просто
+добавить апарметры в конфиг Cinder **/etc/cinder/cinder.conf**, и все
+смонтируется автоматически после перезагрузки сервиса Cinder):
+
+Настраиваем драйвер для cinder-backup и папку nfs-сервера, которую надо
+смонтировать:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image168.png){width="5.2555555555555555in"
+height="0.94375in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image169.png){width="5.3590277777777775in"
+height="1.9854166666666666in"}
+
+Все, поздравляю Swift можно не настраивать как и Ceph, но сами
+понимаете, что если мощность позволяют надо боязательно ставить или
+Swift или Ceph, желательно на трех отдельных узлах. Пока нет желания про
+них что-то расписывать, может только в самом конце, когда все будет
+настроено, я раверну Swift или Ceph на рабочих узлах.
+
+8\. Установка и настройка сервиса управления виртуальными машинами и
+сетью Nova
+
+8.1. Сервис Nova у нас отвечает за за управление запущенными
+экземплярами виртуальных машин, а также сетью (раньше да, теперь за сеть
+отвечает Neutron) как видно из названия раздела. Состоит из следующих
+служб (помимо RabbitMQ (брокера сообщений) и собственной БД):
+
+-   **openstack-nova-api** -- как и подобные службы других рассмотренных
+    сервисов, отвечает за обработку пользовательских вызовов API.
+
+-   **openstack-nova-scheduler** -- сервис-планировщик. Получает из
+    очереди запросы на запуск виртуальных машин и выбирает узел для их
+    запуска. Выбор осуществляется, согласно весам узлов после применения
+    фильтров (необходимый объем оперативной памяти, определенная зона
+    доступности и т. д.). Вес рассчитывается каждый раз при запуске или
+    миграции виртуальной машины.
+
+-   **openstack-nova-conductor** -- служба выступает в качестве
+    посредника между базой данных и nova-compute, позволяя осуществлять
+    горизонтальное масштабирование (нельзя развертывать на тех же узлах,
+    что и nova-compute).
+
+-   **openstack-nova-novncproxy** -- выступает в роли
+    [**VNCпрокси**](https://habr.com/ru/post/76237/) (такую опицю можно
+    было выбрать во время запуска виртуалок при помощи **virsh**) и
+    позволяет подключаться к консоли виртуальных машин при помощи
+    браузера.
+
+-   **openstack-nova-consoleauth** -- отвечает за авторизацию для
+    сервиса openstack-nova-novncproxy (вроде как больше не
+    поддреживется).
+
+-   **openstack-nova-placement-api** -- сервис отвечает за отслеживание
+    списка ресурсов и их использование (рагьше был частью nova, потом
+    отпочковался и стал назваться **opensatck-placement-api**, а
+    по-благородному **Placement**).
+
+-   **openstack-nova-compute** -- демон, управляющий виртуальными
+    машинами через API гипервизора. Как правило, запускается на узлах,
+    где располагается сам гипервизор.
+
+Все сервисы кроме nova-compute располгагаются на controller узле, а
+nova-compute на рабочих узлах comupte и compute-opt (пока не создан).
+
+8.2. Приступаем к установке сервиса Nova:
+
+Как всегда базовые начальные шаги (и хорошо, что они у всех сервисов
+очень похожие):
+
+Устанавливаем все службы Nova, кроме **openstack-nova-compute**
+(Placement раз уж он был когда-то частью Nova тоже скачаем и потом
+настроим, также возможно не надо качать **opemsatck-nova-console**, так
+как **openstack-nova-consoleauth** больше не поддреживается, но это не
+точно):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image170.png){width="6.0055555555555555in"
+height="0.5868055555555556in"}
+
+Создаем три бд (**nova** --- содержит всю информацию о ВМ, которые
+удалось запланировать, **nova-api** --- содержит информацию о
+местонахождении и временном (еще только создаются) местонахождении ВМ и
+**nova-cell0** --- содержит ВМ, которые не удалось запланировать) и
+выдаем всем привилегии:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image171.png){width="5.559027777777778in"
+height="3.9770833333333333in"}
+
+Регистрируем сервис Nova в Keystone:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image172.png){width="5.506944444444445in"
+height="3.9006944444444445in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image173.png){width="4.321527777777778in"
+height="6.136805555555555in"}
+
+Теперь регистрируем сервис Placement в Keystone:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image174.png){width="4.9534722222222225in"
+height="3.509027777777778in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image175.png){width="4.314583333333333in"
+height="5.9527777777777775in"}
+
+Далее конфигурируем файл **/etc/nova/nova.conf** (все параметры (я
+напишу какие не надо) ниже []{#work .anchor}также надо будет добавить в
+аналогичные файлы на рабочих узлах):
+
+Базовая конфигурация (**enabled_apis** --- разрешенные API):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image176.png){width="4.563194444444444in"
+height="3.158333333333333in"}
+
+Теперь на будущее включаем поддержку сервиса Neutron
+(**firewall_driver** --- должно быть такое занчение, если используется
+**Neutron** вместо **nova-network**):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image177.png){width="5.604166666666667in"
+height="0.8694444444444445in"}
+
+Настраиваем URL для использования сервиса Glance:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image178.png){width="4.9534722222222225in"
+height="0.6645833333333333in"}
+
+Указываем имя региона для сервиса Cinder:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image179.png){width="4.601388888888889in"
+height="0.7541666666666667in"}
+
+Указываем путь к фалам блокировок:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image180.png){width="5.596527777777778in"
+height="0.7548611111111111in"}
+
+Настраиваем параметры для подключения к сервису Placement:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image181.png){width="4.385416666666667in"
+height="2.5229166666666667in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image182.png){width="4.945138888888889in"
+height="5.88125in"}
+
+На этом общие параметры заканчиваются и начинаются специфичные для
+**controller.test.local**:
+
+Настраиваем пути к созданным БД (почему только к 2 из 3 я без понятия):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image183.png){width="5.718055555555556in"
+height="1.0694444444444444in"}
+
+Указываем ip **controller.test.local**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image184.png){width="6.6930555555555555in"
+height="0.5701388888888889in"}
+
+Указыаем ip адрес на которм будет работать VNC-сервер:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image185.png){width="5.801388888888889in"
+height="1.1583333333333334in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image186.png){width="5.468055555555556in"
+height="2.7472222222222222in"}
+
+Теперь можно инициализировать базу данных nova-api:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image187.png){width="5.392361111111111in"
+height="0.6152777777777778in"}
+
+Также надо зарегестрировать базу данных cell0 в БД nova и создать ячейку
+cell1:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image188.png){width="6.6930555555555555in"
+height="0.8236111111111111in"}
+
+Теперь заполняем (очень долго) БД nova (я уже сошел с нити понимания
+конфигурации):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image189.png){width="6.6930555555555555in"
+height="1.2006944444444445in"}
+
+8.3. Перед тем как запустить все сервисы Nova сконфигурируем и запустим
+сервис Placement (оказывается зарегестировать его в Keystone было
+недостаточно):
+
+Для этого создадим БД placement и выдадим рарешения:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image190.png){width="6.6930555555555555in"
+height="1.3069444444444445in"}
+
+Так-как в Keystone мы placement зарегестрировали, пропускаем этот шаг и
+заполняем файл кнфига **/etc/placement/placement.conf**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image191.png){width="6.6930555555555555in"
+height="1.8597222222222223in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image192.png){width="5.490972222222222in"
+height="2.954861111111111in"}
+
+Синхронизируем БД placement:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image193.png){width="5.733333333333333in"
+height="0.5840277777777778in"}
+
+8.4. Запускаем все влужбы Nova и презапускаем httpd (насчет
+**openstack-nova-console** пока не знаю, поэтому не запускаю, так как в
+офицальном гайде Opensatck (не из книги) **openstack-nova-console** даже
+не скачивается):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image194.png){width="5.407638888888889in"
+height="2.49375in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image195.png){width="5.4375in"
+height="3.5743055555555556in"}
+
+8.5. На этом настройка сервиса Nova на **controller.test.local**
+закончена и можно переходить к настройке рабочих узлов (все настройки
+проводятся на **compute.test.local**, **compute-opt.test.loca**l
+аналогично, но с другими ip).
+
+Первым делом устнавливаем пакеты **openstack-nova-compute** (служба Nova
+для рабочих узлов) **sysfsutils** (утилита получения информации о ВМ)
+**libvirt** (утилита виртуализации), если не качается фикс
+[**здесь**](#disable):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image196.png){width="5.995833333333334in"
+height="0.5625in"}
+
+Далее необходимо проверить поддержку аппаратной виртуализации на рабочем
+узле (**svm** --- поддержка от Amd, **vmx** --- от Intel):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image197.png){width="4.658333333333333in"
+height="2.7680555555555557in"}
+
+Если вдруг аппаратная виртуализация не поддерживается (пустой вывод
+команды выше), то необходимо включить эмуляцию с помощью QEMU:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image198.png){width="5.801388888888889in"
+height="0.5458333333333333in"}
+
+Теперь настраиваем конфигурационный файл сервиса Nova
+**/etc/nova/nova.conf**, для начала базовые параметры для всех узлов, о
+которых упоминалось [**ранее**](#work):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image182.png){width="4.449305555555555in"
+height="5.291666666666667in"}
+
+Теперь устанавливаем параметры **/etc/nova/nova.conf** специфичные для
+рабочих узлов:
+
+Указываем адрес вычислительного узла (**compute-opt** ---
+192.168.122.215):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image199.png){width="6.097222222222222in"
+height="0.5173611111111112in"}
+
+Включаем поддрежку vnc, а также указываем что VNC-сервер будет слушать
+подключения на всех интерфейсах и URL прокси-сервера, где будет доступен
+браузеру интерфейс виртуальной машины:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image200.png){width="5.708333333333333in"
+height="0.9972222222222222in"}
+
+Указываем адрес узла-клиента nvcproxy (**compute-opt** ---
+192.168.122.215):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image201.png){width="6.055555555555555in"
+height="0.6576388888888889in"}
+
+На этом работа с конфигом заканчивается и можно запускать сревисы
+**libvirtd** **openstack-nova-compute** (**openstack-nova-compute** не
+запустится, если **controller** узел не в сети):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image202.png){width="5.590277777777778in"
+height="2.5256944444444445in"}
+
+8.6. Теперь проверяем что мы там настроили и заканчиваем синзронизацию
+на **controller** узле:
+
+Проверяем видит ли controller узел наш compute узел:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image203.png){width="6.6930555555555555in"
+height="1.3208333333333333in"}
+
+Если видит, то регистрируем гипервизоры с помощью скрипта (вывод
+примерно такой, честно скажу, свой вывод для **compute.test.local** я
+потерял, так что взял вывод после подключения
+**compute-opt.test.local**):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image204.png){width="6.6930555555555555in"
+height="2.0861111111111112in"}
+
+Теперь можно проверить работу Placement API с помощью еще одного
+скрипта:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image205.png){width="3.854861111111111in"
+height="3.220138888888889in"}
+
+**[Если скрипт выводит ошибку 403]{.ul}** --- то вы такой же как и я
+(хотя как может быть по другому, если вы шли по этому гайду), так вот
+ошибка решается добавлением секции **\<Directory /usr/bin\>** в
+конфигурационный файл httpd для Placement API
+**/etc/httpd/conf.d/00-placement-api.conf** и ппоследующим перезапуском
+сервиса httpd:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image206.png){width="3.582638888888889in"
+height="5.329861111111111in"}
+
+На этом настройка сервиса Nova закончилась (нашел [**[крутой современный
+гайд]{.ul}**](https://www.informaticar.net/openstack-compute-installation-tutorial-centos/)
+на установку Openstack), теперь экспромтом покажу как настроить
+**nfs-клиента** на **compute-opt** узле, так как автоматически он его не
+создаст:
+
+Во-первых вот так по итогу выглядит итоговый **/etc/hosts**, каждого
+узла нашего проекта:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image207.png){width="4.653472222222222in"
+height="0.8354166666666667in"}
+
+Скачиваем и запускаем nfs-server:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image165.png){width="4.753472222222222in"
+height="0.7131944444444445in"}
+
+Создаем папку, в которую мы смонтируем nfs-каталог, и собственно
+монтируем в нее nfs-каталог нашего nfs-сервера:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image208.png){width="5.090277777777778in"
+height="0.7125in"}
+
+Для того чтобы каталог автоматически монтировался, добавим
+соответствущую строку в файл **/etc/fstab** и применим конфигурацию:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image209.png){width="5.395833333333333in"
+height="1.0256944444444445in"}
+
+-   **rw** --- разрешение на чтение и запись
+
+-   **sync** --- все изменения сразу сбрасываются на диск без
+    использования кэша
+
+-   **hard** --- клиент будет пинговать nfs-сервер, если тот станет
+    недоступен
+
+-   **intr** --- монтирование можно прервать
+
+9\. Установка и настройка сетевого сервиса Neutron
+
+9.1. Про сервис Neutron написано много, так что введение будет большим.
+Для начала Neutron --- реализует коммутацию (NetFlow, RSPAN, SPAN, LACP,
+802.1q, туннелирование GRE и VXLAN), балансировку нагрузки, брандмауэр и
+VPN в кластере Opensatck (раз он сетевой сервис). Определим основные
+абстракции сервиса:
+
+-   **сеть** -- есть внутренние, виртуальные сети, которых может быть
+    много, и как минимум одна внешняя. Доступ к виртуальным машинам
+    внутри внутренней сети могут получить только машины в этой же сети
+    или узлы, связанные через виртуальные маршрутизаторы. Внешняя сеть
+    представляет собой отображение части реально существующей физической
+    сети для обеспечения сетевой связанности виртуальных машин внутри
+    облака и «внешнего мира».
+
+-   **подсеть** -- сеть должна иметь ассоциированные с ней подсети.
+    Именно через подсеть задается конкретный диапазон IP-адресов
+
+-   **маршрутизатор** -- как и в физическом мире, служит для
+    маршрутизации между сетями.
+
+-   **группа безопасности** -- набор правил брандмауэра, применяющихся к
+    виртуальным машинам в этой группе
+
+-   **«плавающий IP-адрес»** (Floating IP) -- IP-адрес внешней сети,
+    назначаемый экземпляру виртуальной машины. Он может быть выделен
+    только из существующей внешней сети (по умолчанию каждый проект
+    имеет квоту в 50 адресов)
+
+-   **порт** -- подключение к подсети. Порт на виртуальном коммутаторе.
+    Включает в себя MAC-адрес и IP-адрес
+
+Соответсвенно в кластере приходится иметь дело со следующими видами
+трафика:
+
+-   **внешний трафик** --- публичная сеть, которой принадлежат
+    «реальные» IP-адреса виртуальных машин, а также демилитраизированная
+    зона
+
+-   **внутренний трафик** --- сеть для операционных систем и служб (ssh
+    и мониторинг), сеть для сетевой установки узлов под сервисы
+    OpenStack, сеть для IPMI, DRAC, iLO, консолей коммутаторов и сеть
+    передачи данных для служб SDS (Swift, Ceph, iSCSI, NFS)
+
+-   **трафик виртуальных машин** --- сеть свзяи внешнего трафика с ВМ
+
+-   **трафик API и управления** --- сеть, предоставляющая наружу
+    публичный API и веб-интерфейс Horizon
+
+Для функционирования Neutron нужно минимум три узла:
+
+-   **узел управления** --- узел с борокером сообщений
+    (**controller.test.local**)
+
+-   **сетевой узел** --- **[производительный]{.ul}** физический сервер
+    или физический коммутатор
+
+-   **вычислительный узел** --- некоторые службы Neutron добавляются на
+    каждый рабочий узел (**compute.test.local** и
+    **compute-opt.test.local**)
+
+Почему все используют Neutron вместо nova-network? Потому что в Neutron
+можно расширять API при помощи подключаемых модулей (в nova-network для
+настройки сети использовались только возможности ОС на котрой работает
+узел), при этом у Neutron есть супер модуль []{#ML2 .anchor}**Modular
+Layer 2** (ML2 -- OVS/LB), позволяющий использовать сразу несколько
+технологий 2 уровня (раньше можно было только LinuxBridge или только
+Open vSwitch) путем использования специальных драйверов (присутсвуют из
+коробки):
+
+-   драйвера агентов, например LinuxBridge или OVS
+
+-   драйвера контроллеров SDN, например OpenDaylight, OpenContrail,
+    VMware NSX или PLUMgrid
+
+-   драйвера аппаратных коммутаторов, например Cisco Nexus или Extreme
+    Networks
+
+Также можно качать сторонние
+**[драйвера](https://wiki.openstack.org/wiki/Neutron_Plugins_and_Drivers)**
+или разворачивать сервисы:
+
+-   **маршрутизатор**
+
+-   **балансировщик** **нагрузки** (LBaaS)
+
+-   **брандмауэр** (FaaS)
+
+-   **виртуальные** **частные** **сети** (VPNaaS)
+
+Наконец на 65 старнице можно чатично понять смыл проектов Openstack ---
+каждый проект может иметь свою сеть, соответсвенно один узел может иметь
+несколько адресных пространств которые даже могут пересекаться
+(несколько ARP таблиц и таблиц маршрутизации, наборов правил
+брандмауэра, сетевых устройств и т. д).
+
+Что касается служб Neutron:
+
+-   **neutron-server** -- центральный управляющий компонент. Не
+    занимается непосредственно маршрутизацией пакетов. С остальными
+    компонентами взаимодействует через брокер сообщений **(сидит на узле
+    управления)**
+
+-   **neutron-openvswitch-agent** -- взаимодействует с neutron-server
+    через брокер сообщений и отдает команды OVS для построения таблицы
+    потоков **(сидит на сетевом и рабочих узлах)**
+
+-   **neutron-l3-agent** -- обеспечивает маршрутизацию и NAT, используя
+    технологию сетевых пространств имен **(сидит на сетевом узле)**
+
+-   **openvswitch** -- программный коммутатор, используемый для
+    построения сетей **(сидит на сетевом и рабоих узлах)**
+
+-   **neutron-dhcp-agent** -- сервис отвечает за запуск и управление
+    процессами dnsmasq, легковесного dhcp-сервера и сервиса кэширования
+    DNS. Также neutrondhcp-agent отвечает за запуск прокси-процессов
+    сервера предоставления метаданных (каждая сеть, создаваемая агентом,
+    получает собственное пространство имен qdhcp-UUID_сети) **(сидит на
+    сетевом узле)**
+
+-   **neutron-metadata-agent** -- данный сервис позволяет виртуальным
+    машинам запрашивать данные о себе, такие как имя узла, открытый
+    ssh-ключ для аутентификации и др (ВМ получают эту информацию во
+    время загрузки скриптом, обращаясь на адрес http://169.254.169.254.
+    Агент проксирует соответствующие запросы к openstack-nova-api при
+    помощи пространства имен маршрутизатора или DHCP) **(сидит на
+    сетевом узле)**
+
+-   **neutron-ovs-cleanup** -- отвечает во время старта за удаление из
+    базы данных OVS неиспользуемых мостов «старых» виртуальных машин
+    **(сидит на сетевом узле)**
+
+Итак что происхдит в **Neutron** при создании ВМ через сервис **Nova**:
+
+1.  Сервис **Nova** отправляет запрос на сервис neutron-server,
+    отвечающий за API
+
+2.  **Neutron-server** отправляет запрос агенту DHCP
+    (**neutron-dhcp-agent**) на создание IP-адреса
+
+3.  **Neutron-dhcp-agent** обращается к сервису **dnsmasq**, отвечающему
+    за подсеть, в которой создается виртуальная машина
+
+4.  **Dnsmasq** возвращает первый свободный IP-адрес из диапазона
+    адресов подсети
+
+5.  **Neutron-dhcp-agent** отправляет этот адрес сервису
+    **neutron-server**
+
+6.  После того как за виртуальной машиной закреплен IP-адрес, сервис
+    **Neutron** отправляет запрос на **Open vSwitch** для создания
+    конфигурации, включающей IP-адрес в существующую сеть.
+
+7.  **Open vSwitch** возвращает обратно параметры конфигурации на сервис
+    **Neutron** при помощи шины сообщений
+
+8.  **Neutron** отправляет параметры конфигурации сервису **Nova**
+
+9.  Конец
+
+Небольшая сноска перед следующим пунктом, я тут нешел рекомендуемые
+требования к узлам... (у меня всего 8GB, возможно в скором времени мне
+это все еще как аукнется, как минимум Swift и Ceph даже если бы хотел
+развернуть не смог), в такие моменты внезапно понимаешь, что по идее эти
+узлы должны одновременно запущенны 24/7 и их не надо останавливать,
+чтобы перестать ловить фризы всей системы, а ведь в переди еще как
+минимум 3 сервиса.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image210.png){width="4.74375in"
+height="3.1645833333333333in"}
+
+9.2. Начинаем кстановку и настройку сервиса Neutron на узле управления
+(**controller.test.local**):
+
+На всякий случай сделаем снимок состояния виртуалки, а то мне
+кажется,что грань великих тормозов все ближе:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image211.png){width="4.632638888888889in"
+height="1.0430555555555556in"}
+
+Устанавливаем пакеты **openstack-neutron** (службы **Neutron**)
+**openstack-neutron-ml2** (тот самый [**волшебный модуль**](#ML2)):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image212.png){width="5.923611111111111in"
+height="0.5736111111111111in"}
+
+Классическое создание БД для сервиса, на это раз как нетрудно понять БД
+зовется neutron:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image213.png){width="4.881944444444445in"
+height="1.6006944444444444in"}
+
+Далее... да вы угадали --- регистрируем сервис в Keystone:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image214.png){width="4.277777777777778in"
+height="3.0659722222222223in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image215.png){width="4.246527777777778in"
+height="6.100694444444445in"}
+
+Далее идут общие параметры конфигурационных файлов для сетевого, рабочих
+и управляющего узлов. Neutron --- король по количеству настроек, вот
+описание файлов конфигураций, которые мы будем изменять:
+
+-   **/etc/neutron/neutron.conf** --- основной конфиг Neutron
+
+-   **/etc/neutron/plugins/ml2/ml2_conf.ini ---** конфиг модуля ML2
+
+-   **/etc/neutron/plugin.ini ---** сслыка на конфиг ML2, там прикол,
+    что если не будет ссылки то конфиг ML2 не подключится, так как
+    находится в другой папке.
+
+-   **/etc/neutron/l3_agent.ini** --- конфиг L3-агента (отвечает за
+    маршрутизацию)
+
+-   **/etc/neutron/dhcp_agent.ini** --- конфиг DHCP-агента
+
+-   **/etc/neutron/metadata_agent.ini** --- конфиг агента,
+    предоставляющего метаданные виртуальным машинам
+
+-   **/etc/neutron/plugins/ml2/openvswitch_agent.ini** --- конфиг агента
+    Open vSwitch для модуля ML2
+
+Ну шо приступаем к настройке **/etc/neutron/neutron.conf**, первым делом
+настраиваем баозовые вещи (подключение к броекру сообщений и
+аунтефикацию Keystone):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image216.png){width="5.051388888888889in"
+height="3.3784722222222223in"}
+
+Указываем назваоние основного подлкючаемого модуля второго уровня модели
+OSI (также есть : hyperv, cisco, brocade, embrance, vmware, nec и др):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image217.png){width="6.145833333333333in"
+height="0.5152777777777777in"}
+
+Указываем погружаемые модули (из router, firewall, lbaas, vpnaas,
+metering), подгружаем только маршрутизатор:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image218.png){width="6.138888888888889in"
+height="0.4798611111111111in"}
+
+Настройка разрешения пересечения IP внутри проектов:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image219.png){width="6.152777777777778in"
+height="0.4548611111111111in"}
+
+Забыл настроить путь к файлам блокировки:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image220.png){width="6.138888888888889in"
+height="0.6743055555555556in"}
+
+Настройка **/etc/neutron/neutron.conf** закончена (вроде как), теперь
+настраиваем **/etc/neutron/plugins/ml2/ml2_conf.ini**:
+
+Настраиваем используемые сегменты сетей (выбр из: flat, GRE, VLAN, VXLAN
+и local):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image221.png){width="5.673611111111111in"
+height="0.6055555555555555in"}
+
+Настраиваем технологии используемые для сетей проектов (поддерживающие
+пересечение IP: GRE, VLAN, VXLAN и flat):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image222.png){width="5.770833333333333in"
+height="0.5618055555555556in"}
+
+Настраиваем тип драйвера механизма ML2 (выбор из: openvswitch, mlnx,
+arista, cisco, logger, linuxbridge и brocade):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image223.png){width="5.9375in"
+height="0.5777777777777777in"}
+
+Настраиваем диапазон ID для
+[**GRE-туннелей**](https://wiki.dieg.info/gre):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image224.png){width="5.958333333333333in"
+height="0.5465277777777777in"}
+
+Включаем группы безопасности
+[**ipset**](https://www.dmosk.ru/terminus.php?object=ipset):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image225.png){width="6.0in"
+height="0.6548611111111111in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image226.png){width="4.229166666666667in"
+height="4.644444444444445in"}
+
+Выше были настройки общие для всех узлов, теперь пойдут настройки только
+для управляющего узла:
+
+Настраиваем параметры поключения к БД:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image227.png){width="5.729166666666667in"
+height="0.6888888888888889in"}
+
+Настраиваем отправку уведомлений сервису Nova при изменении статуса
+портов и IP-адресов:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image228.png){width="5.965277777777778in"
+height="0.8215277777777777in"}
+
+Настраиваем параметры пподключения к Keystone сервиса Nova (видимо
+Neutron нужно в определенных обстоятельствах нужно выдавать себя за
+Nova):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image229.png){width="5.5in"
+height="1.2027777777777777in"}
+
+Переносим все заботы о сети с сервиса Nova на Neutron в файле
+**/etc/nova/nova.conf** (еще брандмауэр Nova вырубаем), тетью команду
+отдельно выносить не буду, там мы задаем поддержку Open vSwitch:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image230.png){width="5.701388888888889in"
+height="1.3930555555555555in"}
+
+Настраиваем параметры аутентификации Neutron для Nova, если раньше мы
+писали их в **/etc/neutron/neutron.conf**, то теперь в
+**/etc/nova/nova.conf**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image231.png){width="4.795833333333333in"
+height="1.707638888888889in"}
+
+Теперь можно синхронизировать БД:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image232.png){width="6.6930555555555555in"
+height="0.6083333333333333in"}
+
+У меня вылезла ошибка **«No module named MySQLdb»**, почему только
+сейчас известно только разрабам Openstack (хотя вывод скрипта огромный,
+мб он единственный использует это модуль), но фиксится она как нетрудно
+догадаться скачивание данного модуля (после снапшота, я теперь готов все
+что угодно качать):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image233.png){width="3.261111111111111in"
+height="0.5402777777777777in"}
+
+Теперь создаем ссылку на конфиг ML2 в папке настроек Neutron
+**/etc/neutron/**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image234.png){width="6.6930555555555555in"
+height="0.5333333333333333in"}
+
+Указываем использование прокси для сервера метаданных и общий секрет,
+которым будут подписываться запросы к серверу метаданных в конфиге
+**/etc/nova/nova.conf:**
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image235.png){width="5.590972222222222in"
+height="0.7291666666666666in"}
+
+По итогу на узле управления в конфиги добавляются следующие параметры:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image236.png){width="4.833333333333333in"
+height="5.294444444444444in"}
+
+Перезапускаем сервисы **nova** и стартуем сервис **neutron-server**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image237.png){width="4.580555555555556in"
+height="1.13125in"}
+
+Проверка итога настройки:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image238.png){width="5.292361111111111in"
+height="1.15625in"}
+
+9.3. Теперь я оказался на перепутье ведь надо настраивать сетевой узел
+как отдельный узел, а нутбук уже просит пощады, так что мой выбор пал на
+разворачивание сетевого узла на узле управления, может выйти гениально,
+а может и нет (но я ведь не зря снимок сделал). Далее я буду писать как
+будто настраиваю отдельный узел, но делать пометки лишних действий, так
+как некоторые уже дела при настройке узла управления:
+
+Начнем с утановки необходимых пакетов (если как и я устанавливаете на
+узел упраления, то **openstack-neutron** и **openstack-neutron-ml2**
+качать не надо) **openstack-neutron-openvswitch** (модуль openvswitch
+для openstack) и **[openvswitch](https://habr.com/ru/post/325560/)**
+(программный коммутатор):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image239.png){width="6.6930555555555555in"
+height="0.3958333333333333in"}
+
+Далее идет установка всех общих параметров конфигов (на узле управления
+уже установлены) и создание ссылки на конфиг в
+**/etc/neutron/plugins/ml2/ml2_conf.ini**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image226.png){width="3.803472222222222in"
+height="4.176388888888889in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image234.png){width="6.6930555555555555in"
+height="0.5333333333333333in"}
+
+Дальше уже страшно, так как нужно внести именения в параметры ядра, а
+именно включить маршрутизацию пакетов (**net.ipv4.ip_forward**) и
+выключить фильтрацию пакетов по их исходящему адресу
+(**net.ipv4.conf.all.rp_filter** и **net.ipv4.conf.default.rp_filter**):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image240.png){width="3.6534722222222222in"
+height="2.0555555555555554in"}
+
+Настраиваем конфиг ML2 **/etc/neutron/plugins/ml2/ml2_conf.ini**,
+указывая [**flat**](https://wiki5.ru/wiki/Flat_network) провайдер для
+внешней сети:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image241.png){width="5.452083333333333in"
+height="0.5861111111111111in"}
+
+Настраиваем конфиг Open vSwitch
+**/etc/neutron/plugins/ml2/openvswitch_agent.ini**:
+
+Указываем IP-адрес для конечной точки туннеля (ip узла управления):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image242.png){width="5.084027777777778in"
+height="0.5465277777777777in"}
+
+Сопоставляем внешнюю сеть созданному мосту br-ex:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image243.png){width="5.965277777777778in"
+height="0.6576388888888889in"}
+
+Настраиваем включение GRE-туннелирования:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image244.png){width="4.872222222222222in"
+height="0.7979166666666667in"}
+
+Настраиваем конфиг L3-агента (маршрутизация)
+**/etc/neutron/l3_agent.ini**:
+
+Указываем драйвер Open vSwitch:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image245.png){width="4.691666666666666in"
+height="0.5041666666666667in"}
+
+Настриваем использование namespace:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image246.png){width="5.299305555555556in"
+height="0.425in"}
+
+Указываем имя, используемого моста:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image247.png){width="5.229861111111111in"
+height="0.5347222222222222in"}
+
+Настриваем удаление неиспользуемых namespace:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image248.png){width="5.128472222222222in"
+height="0.5131944444444444in"}
+
+Настраиваем конфиг DHCP-агента **/etc/neutron/dhcp_agent.ini**:
+
+Указываем драйвер Open vSwitch:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image249.png){width="4.820138888888889in"
+height="0.5277777777777778in"}
+
+Указываем Dnsmask DHCP драйвер:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image250.png){width="5.15in"
+height="0.5958333333333333in"}
+
+Настраиваем успользование и удаление namespace:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image251.png){width="5.604166666666667in"
+height="0.7208333333333333in"}
+
+Настриваем конфиг агента-метаданных **/etc/neutron/metadata_agent.ini**:
+
+Указывае IP-адрес управляюшего узла:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image252.png){width="5.555555555555555in"
+height="0.5638888888888889in"}
+
+Указываем общий секрет, используемый для получения метаданных;
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image253.png){width="5.909722222222222in"
+height="0.5347222222222222in"}
+
+Дополнительные параметры конфигов сетевого (управляющего) узла:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image254.png){width="4.2875in"
+height="3.7743055555555554in"}
+
+Запускаем и включаем Open vSwitch:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image255.png){width="5.4in"
+height="1.3916666666666666in"}
+
+Я тут понял, что в определенный момент перестал показывать скрины
+статусов, но не переживайте, все работает без ошибок.
+
+Ухх, господа, теперь [**надо создать сетевой
+интерфейс**](https://bozza.ru/art-266.html) для нашей так называемой
+внутренней сети (в книге он был с первой главы, в то время как у меня
+был только eth0 на всез ВМ), так что выходим из нашей виртуалки на хост
+и начинаем создавать новую сеть типа bridge:
+
+Первым делом создаем файл конфигурации сети **private.xml** (я просто
+скопировал содержимое файла **/etc/libvirt/qemu/networks/default.xml** и
+поменял ip и удалил части, которые сгенерятся автоматически), потому что
+virsh почему-то не может создать сеть через параметры командной строки:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image256.png){width="3.8270833333333334in"
+height="1.8340277777777778in"}
+
+Создаем сеть с помощью virsh:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image257.png){width="2.665277777777778in"
+height="1.4243055555555555in"}
+
+Включаем автострат сети private (перед настройкой автостарта, нужно
+открыть конфиг сети через **net-edit**, чтобы первоначальные настройки
+сети применились):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image258.png){width="3.1284722222222223in"
+height="0.89375in"}
+
+Должен появится сетевой интерфейс **virbr3** на хосте:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image259.png){width="5.861111111111111in"
+height="0.9645833333333333in"}
+
+Теперь можно запускать VM2 (**controller.test.local**) и присоеденять к
+ней сетевой интерфейс (команда выполнятеся на хосте):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image260.png){width="5.6875in"
+height="0.6229166666666667in"}
+
+Внутри ВМ должен появится новый интерфейс **eth1**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image261.png){width="5.250694444444444in"
+height="0.7805555555555556in"}
+
+На этом все, сетевой интерфейс к машине присоединен, теперь можно
+перейти к его настройке для сетевого (у меня управляющего) узла для
+сервиса Neutron:
+
+Создаем файл **/etc/sysconfig/network-scripts/ifcfg-eth1** и пишем в
+него следующие настройки и перезапускаем сеть:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image262.png){width="4.111111111111111in"
+height="1.957638888888889in"}
+
+Так теперь выглядит eth1 интерфейс в выводе команды **ip**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image263.png){width="5.49375in"
+height="1.1659722222222222in"}
+
+Теперь надо добавить мост **br-ex** для Open vSwitch, который будет
+находится на созданном интерфейсе **etn1**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image264.png){width="4.104861111111111in"
+height="1.0104166666666667in"}
+
+Проверяем все ли подключилось нормально при помощи **ovs-vsctl**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image265.png){width="2.5506944444444444in"
+height="1.4895833333333333in"}
+
+Вроде все круто, так что можно запускать все службы Neutron для сетевого
+(сами знаете какого) узла (насколько я понял ovscleanup стартовать не
+надо):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image266.png){width="4.7375in"
+height="2.3270833333333334in"}
+
+Вместо того, чтобы проверять статус каждой службы можно посмотреть все
+одной командой:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image267.png){width="6.6930555555555555in"
+height="1.0555555555555556in"}
+
+Теперь переходим к настройке служб Neutron на рабочих узлах **compute**
+и **compute-opt**:
+
+Качаем необходимые пакеты (все уже обсуждались раньше):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image268.png){width="6.6930555555555555in"
+height="0.4409722222222222in"}
+
+Теперь заполняем общие для всех узлов параметры конфигов для сервиса
+Neutron, и создаем ссылку на конфиг ML2:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image226.png){width="3.48125in"
+height="3.8229166666666665in"}
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image234.png){width="6.6930555555555555in"
+height="0.5333333333333333in"}
+
+Базу выполнили, теперь изменяем параметры ядра
+**net.ipv4.conf.all.rp_filter** и **net.ipv4.conf.default.rp_filter**
+(отключение фильтрации пакетов), **net.bridge.bridge-nf-call-iptables**
+(пакеты с сетевого моста передаются на обработку iptables):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image269.png){width="2.8305555555555557in"
+height="1.6020833333333333in"}
+
+Если последняя строка не вполняется то выполните следующую команду
+(включает модуль ядра
+[**br_netfilter**](https://ebtables.netfilter.org/documentation/bridge-nf.html)),
+а потом опять **sysctl**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image270.png){width="3.3805555555555555in"
+height="1.2027777777777777in"}
+
+Так, ну теперь пошли специфичные для рабочих узлов параметры конфигов:
+
+Настраиваем конфиг Open vSwitch
+**/etc/neutron/plugins/ml2/openvswitch_agent.ini**:
+
+Указываем локальный ip вычислительного узла (**compute-opt** ---
+192.168.122.215):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image271.png){width="5.875in"
+height="0.5895833333333333in"}
+
+Указываем тип используемой технологии тунеля:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image272.png){width="6.0in"
+height="0.5625in"}
+
+Указываем драйвер брандмауэра (iptables на open vSwitch):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image273.png){width="5.944444444444445in"
+height="0.5569444444444445in"}
+
+Запускаем Open vSwitch, так как его настройка закончена:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image274.png){width="5.330555555555556in"
+height="0.775in"}
+
+Настраиваем конфиг сервиса Nova **/etc/nova/nova.conf**:
+
+Передаем полномочия (первые 3 команды) с службы **nova-network** на
+**Neutron**, а также отключаем службу брандмауэра в **Nova** (последняя
+команда):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image230.png){width="5.6875in"
+height="1.3895833333333334in"}
+
+Указываем параметры аунтефикации Neutron (как и на управляющем узле):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image231.png){width="6.104166666666667in"
+height="2.173611111111111in"}
+
+Персональные папрметры рабочих узлов:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image275.png){width="6.0in"
+height="3.948611111111111in"}
+
+Перезапускаем службу **nova-compute** и запускаем агента Open vSwitch:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image276.png){width="6.6930555555555555in"
+height="1.1256944444444446in"}
+
+Должны добавится новые сетевые агенты в выводе команды, по одному на
+рабочий узел (я пока настроил только один):
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image277.png){width="6.6930555555555555in"
+height="1.4166666666666667in"}
+
+Все, с сервисом Neutron пока покончено, как и с основными (точнее 6 из
+7, без Swift) сервисами Opensatck. Осталось только поработать с
+созданием ВМ и сетей для них, а также установить доп сервисы для
+удобства (Horizon, Gnocchi. Ceilometr, Aodh и Heat). Есть также
+некоторые сомнения касательно подключения дополнительных сетевых
+интерфейсов для рабочих узлов (пока не подключаю), если их надо будет
+добавить, естественно, сделаю сноску.
+
+10\. Тестим все то, что наразворачивали.
+
+10.1. Для начала создадим все необходимые компоненты сетевой
+инфраструктуры для запуска первой ВМ:
+
+Создаем внешнюю сеть **ext-net**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image278.png){width="5.0in"
+height="4.440972222222222in"}
+
+Из-за опечатки в книге (вместо \--provider-physical-network external
+было написано \--provider-physical-network datacentre) я потратил
+очередные 2 часа своей жизни на исправление бага... А ведь это уже 4
+издание.
+
+-   **\--external** --- сеть является внешней (есть средство внешней
+    маршрутизации)
+
+-   **\--share** --- сеть доступна всем проектам
+
+-   **\--provider-network-type** --- физический механизм, с помощью
+    которого реализуется виртуальная сеть (flat, geneve, gre, local,
+    vlan, vxlan)
+
+-   **\--provider-physical-network** --- имя физической сети, в которой
+    реализована виртуальная сеть (мы мапили это название с созданным
+    мостом, а потом объявляли его возможным для использования в типе
+    сети flat)
+
+Теперь создадим подсеть, из которой будут выделяться плавающие IP-адреса
+(в реальности они должны быть видны из интернета).
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image279.png){width="5.149305555555555in"
+height="3.7354166666666666in"}
+
+-   **\--network** --- сеть родитель
+
+-   **\--no-dhcp** --- без DHCP
+
+-   **\--allocation-pool** --- доступные ip адреса
+
+-   **\--gateway** --- дефолтный шлюз во внешюю сеть (ip маршрутизатора)
+
+-   **\--subnet-range** --- маска подсети
+
+Теперь переквалифицируемся в пользователя demo и создаем сеть в его
+личном проекте:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image280.png){width="4.366666666666666in"
+height="3.9819444444444443in"}
+
+Создаем подсеть (**demo-subnet**) нашей **demo-net**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image281.png){width="4.7034722222222225in"
+height="3.7222222222222223in"}
+
+Создаем роутер (**demo-router**) для **demo-subnet**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image282.png){width="5.083333333333333in"
+height="3.160416666666667in"}
+
+Добавляем подсеть **demo-subnet** к роутеру **demo-router**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image283.png){width="5.059722222222222in"
+height="0.5118055555555555in"}
+
+[Отступление от темы]{.ul}: у меня уже начинаются убиваться процесссы на
+виртуалке из-за нехватки опертивки.
+
+Теперь выставляем внешний шлюз для роутера **demo-router**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image284.png){width="5.393055555555556in"
+height="0.48541666666666666in"}
+
+Вот примерные параметры роутера **demo-router**:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image285.png){width="5.625in"
+height="3.428472222222222in"}
+
+10.2. Теперь переходим к созданию экземпляра ВМ:
+
+А, попались, думали уже можно создать ВМ, неа еще надо создать
+**flavour** (шаблон виртуальной машины по выделяемым ресурсам) перед
+этим. Шаблогы по умолчанию может создавать только админ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image286.png){width="5.569444444444445in"
+height="2.922222222222222in"}
+
+-   **\--ram** --- оперативная память
+
+-   **\--disk** --- размер диска
+
+-   **\--vcpu** --- количество витуальных ядер CPU
+
+-   **\--publc** --- доступен всем пользователям
+
+-   **\--rxtx-factor** --- пропускная способность сети (только для
+    гипервизора XEN)
+
+-   **\--ephemeral** --- размер второго диска (в отличии от \--disk
+    всегда удаляется при удалении ВМ)
+
+-   **\--swap** --- размер опционального
+    [**swap-раздела**](https://fornex.com/ru/help/swap/#:~:text=SWAP (своп) — это механизм,%2C называемые страницами (pages).)
+
+Выделил контроллер узлу еще 2GB оперативки, надеюсь хватит, но я уже
+вхожу в зону «выделил ресурсов больше чем на самом деле» (2+2+6=8)
+
+Теперь создадим пару ssh ключей, которую служба метаданных сервиса Nova
+будет передавать созданным ВМ:
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image287.png){width="5.652777777777778in"
+height="2.425in"}
+
+Вхожу в теневую зону (запускаю сразу 3 ВМ) и пытаюсь создать ВМ по
+созданному шаблону **m2.tiny**, передав в нее созданную пару ключей
+**demokey1** (если на этом отчет закончился, то это потому что у меня
+взорвался ноубук):
+
+При запуске обоих рабочих узлов, узел управления сразу падает, видимо
+kvm не любет избыточность ресурсов, поэтому прощай **compute-opt**.
+Лагануло при создании ВМ у меня знатно.
+
+![](vertopal_5a412c0bdde74d47a0befd82d170dd30/media/image288.png){width="5.565972222222222in"
+height="4.4222222222222225in"}
+
+**[Изливаю очередной бомбеж:]{.ul}** я весь день (5 часов подряд)
+пытался пофикисть ошибку **UnicodeDecodeError**, которая вылезала при
+создании ВМ, к 5 часу я уже редачил питоновские файлы по гайдам на
+китайском языке, но все равно ошибка коварно вылезала, а потом я
+перезагрузил (в 3 раз за 5 часоа) виртуалки и все пофиксилось, вот как
+так то\...
+
+Посмотреть статус созданной ВМ можно как с помощью **openstack cli**,
+так и при помощи **virsh** на рабочем узле:
